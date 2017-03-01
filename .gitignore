@@ -1,0 +1,5 @@
+*.suo
+/BaiduPCS/bin/Debug/*.pdb
+/BaiduPCS/bin/Debug
+/BaiduPCS/obj/x86/Debug
+/BaiduPCS/*.user

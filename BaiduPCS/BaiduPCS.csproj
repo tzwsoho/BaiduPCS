@@ -35,6 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.JScript" />
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
@@ -57,6 +58,7 @@
     <Compile Include="frmMain.Designer.cs">
       <DependentUpon>frmMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="ListViewSorter.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="frmMain.resx">
@@ -82,6 +84,39 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Copy.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Cut.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\File.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Paste.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Refresh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Rename.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Delete.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\Drive.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="netdisk_logo.ico" />
+    <Content Include="Properties\Download.png" />
+    <Content Include="Properties\MkDir.png" />
+    <Content Include="Properties\Upload.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

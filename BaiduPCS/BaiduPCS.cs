@@ -11,15 +11,18 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 
 namespace BaiduPCS
 {
     class BaiduPCSUtil
     {
-		// https://github.com/GangZhuo/BaiduPCS.git
+        // https://github.com/GangZhuo/BaiduPCS.git
 
         const int READ_BUF_SIZE = 1024;
         const int DOWNLOAD_BUF_SIZE = 100 * 1024;
+
+        const long RAPIDUPLOAD_THRESHOLD = 256 * 1024;
 
         const string BAIDU_HOME = "http://www.baidu.com";
         const string BAIDU_DISK_HOME = "http://pan.baidu.com/disk/home";
@@ -346,6 +349,61 @@ namespace BaiduPCS
 
             string[] arr_path = dir_path.Split("/".ToCharArray());
             return arr_path[arr_path.Length - 1];
+        }
+
+        private string GetDirPath(string str_path)
+        {
+            if ("/" == str_path) return "/";
+
+            string[] arr_path = str_path.Split("/".ToCharArray());
+            return string.Join("/", arr_path, 0, arr_path.Length - 1);
+        }
+
+        private string MD5File(FileStream fs, long offset = 0, long length = 0)
+        {
+            const int SLICE_SIZE = 16 * 1024;
+
+            try
+            {
+                fs.Seek(offset, SeekOrigin.Begin);
+                if (0 == length)
+                {
+                    length = fs.Length;
+                }
+
+                long read_size = 0;
+                MD5 md5 = MD5CryptoServiceProvider.Create();
+                byte[] bytes_slice = null, bytes_out = null;
+                do
+                {
+                    int slice_size = (int)(length - read_size);
+                    if (slice_size > SLICE_SIZE)
+                    {
+                        slice_size = SLICE_SIZE;
+                    }
+
+                    bytes_slice = new byte[slice_size];
+                    read_size += fs.Read(bytes_slice, 0, slice_size);
+
+                    if (read_size < length)
+                    {
+                        bytes_out = new byte[slice_size];
+                        md5.TransformBlock(bytes_slice, 0, slice_size, bytes_out, 0);
+                    }
+                    else
+                    {
+                        bytes_out = md5.TransformFinalBlock(bytes_slice, 0, slice_size);
+                    }
+                } while (read_size < length);
+
+                string str_ret = BitConverter.ToString(md5.Hash).Replace("-", "");
+                return str_ret;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return "";
+            }
         }
 
         private byte[] BuildKeyValueParams(NameValueCollection nvc, bool need_url_encode = true)
@@ -678,7 +736,7 @@ namespace BaiduPCS
                         // TODO
                         return err_no;
                     }
-                    //break;
+                //break;
 
                 default:
                     return err_no;
@@ -1062,6 +1120,8 @@ namespace BaiduPCS
             {
                 foreach (BaiduFileInfo bdfi in src_path)
                 {
+                    System.Windows.Forms.Application.DoEvents();
+
                     if (1 == bdfi.m_is_dir)
                     {
                         List<BaiduFileInfo> lst_bdfi = new List<BaiduFileInfo>();
@@ -1087,7 +1147,6 @@ namespace BaiduPCS
                     }
                 }
 
-                System.Windows.Forms.Application.DoEvents();
                 return true;
             }
             catch (Exception)
@@ -1230,13 +1289,208 @@ namespace BaiduPCS
         }
 
         /// <summary>
+        /// 创建上传目录
+        /// </summary>
+        /// <param name="base_path">当前本地目录</param>
+        /// <param name="src_path">本地源路径</param>
+        /// <param name="dst_path">远程目标路径</param>
+        /// <param name="total_size">所有文件总大小</param>
+        /// <param name="d_path">所有“本地路径-远程路径”键值对</param>
+        /// <returns></returns>
+        private bool PrepareUpload(
+            string base_path,
+            string[] src_path,
+            string dst_path,
+            ref long total_size,
+            ref Dictionary<string, string> d_path)
+        {
+            try
+            {
+                foreach (string str_path in src_path)
+                {
+                    System.Windows.Forms.Application.DoEvents();
+
+                    FileInfo fi = new FileInfo(str_path);
+                    if (fi.Attributes.HasFlag(FileAttributes.Directory))
+                    {
+                        BaiduFileInfo bdfi = new BaiduFileInfo();
+                        string dst_dir = dst_path + "/" + Path.GetDirectoryName(str_path);
+                        MkDir(dst_dir, ref bdfi);
+
+                        if (!PrepareUpload(str_path, Directory.GetFileSystemEntries(str_path), dst_dir, ref total_size, ref d_path))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        total_size = fi.Length;
+                        d_path.Add(str_path, dst_path + "/" + fi.Name);
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 快速上传
+        /// </summary>
+        /// <param name="fs">源文件</param>
+        /// <param name="dst_file">目标路径</param>
+        /// <returns></returns>
+        private bool RapidUpload(FileStream fs, string dst_file)
+        {
+            try
+            {
+                NameValueCollection nvc = new NameValueCollection();
+                nvc.Add("method", "rapidupload");
+                nvc.Add("app_id", "250528");
+                nvc.Add("ondup", "overwrite");
+                nvc.Add("dir", GetDirPath(dst_file));
+                nvc.Add("filename", GetDirFileName(dst_file));
+                nvc.Add("content-length", fs.Length.ToString());
+                nvc.Add("content-md5", MD5File(fs));
+                nvc.Add("slice-md5", MD5File(fs, 0, RAPIDUPLOAD_THRESHOLD));
+                nvc.Add("path", dst_file);
+                nvc.Add("BDUSS", m_bduss);
+                nvc.Add("bdstoken", m_bdstoken);
+
+                string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
+                string url = BAIDU_PCS_REST + "?" + str_params;
+                Log("GET " + url);
+
+                byte[] html = null;
+                if (!HttpGet(url, ref html))
+                {
+                    Log(dst_file + " 快速上传失败：" + m_http_code);
+                    return false;
+                }
+
+                if (HttpStatusCode.OK != m_http_code)
+                {
+                    Log(dst_file + " 快速上传失败：" + m_http_code);
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                Log("html = " + str_html);
+
+                object error_code = GetJsonValue(str_html, "error_code");
+                if (null != error_code)
+                {
+                    object error_msg = GetJsonValue(str_html, "error_msg");
+                    Log(dst_file + " 快速上传失败：" + error_code.ToString() + "，" + error_msg);
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 一般上传
+        /// </summary>
+        /// <param name="fs">源文件</param>
+        /// <param name="dst_file">目标路径</param>
+        /// <returns></returns>
+        private bool NormalUpload(FileStream fs, string dst_file)
+        {
+            try
+            {
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 上传文件(夹)
         /// </summary>
-        /// <param name="src_path"></param>
-        /// <param name="dst_path"></param>
+        /// <param name="base_path">当前本地目录</param>
+        /// <param name="src_path">源路径</param>
+        /// <param name="dst_path">目标路径</param>
         /// <returns></returns>
-        public bool Upload(string[] src_path, string dst_path)
+        public bool Upload(string base_path, string[] src_path, string dst_path)
         {
+            long current_size = 0, total_size = 0;
+            Dictionary<string, string> d_path = new Dictionary<string, string>();
+            bool ret = PrepareUpload(base_path, src_path, dst_path, ref total_size, ref d_path);
+            if (!ret)
+            {
+                return false;
+            }
+
+            m_status = 0;
+            int cur_files = 1, total_files = d_path.Count;
+            foreach (KeyValuePair<string, string> kv in d_path)
+            {
+                FileStream fs = null;
+                if (1 == m_status)
+                {
+                    while (1 == m_status)
+                    {
+                        System.Windows.Forms.Application.DoEvents();
+                        System.Threading.Thread.Sleep(10);
+                    }
+                }
+                else if (2 == m_status)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    fs = File.OpenRead(kv.Key);
+                    if (fs.Length < RAPIDUPLOAD_THRESHOLD)
+                    {
+                        ret = NormalUpload(fs, kv.Value);
+                    }
+                    else
+                    {
+                        ret = RapidUpload(fs, kv.Value);
+                        if (ret)
+                        {
+                            current_size += fs.Length;
+                        }
+                        else
+                        {
+                            ret = NormalUpload(fs, kv.Value);
+                        }
+                    }
+
+                    if (!ret)
+                    {
+                        fs.Close();
+                        cur_files++;
+                        continue;
+                    }
+
+                    ReportProgress(false,
+                        current_size, total_size,
+                        fs.Length, fs.Length,
+                        cur_files, total_files,
+                        kv.Key, kv.Value);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+
+                fs.Close();
+                cur_files++;
+            }
+
             return true;
         }
 

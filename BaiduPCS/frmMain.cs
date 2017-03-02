@@ -589,6 +589,7 @@ namespace BaiduPCS
 
         private void btnUpload_Click(object sender, EventArgs e)
         {
+            if ("" == m_local_current_path) return;
             if (lvwLocal.SelectedItems.Count <= 0) return;
 
             if (!m_util.IsLogin())
@@ -602,11 +603,26 @@ namespace BaiduPCS
                 lst_path.Add(m_local_current_path + "\\" + lvi.Text);
             }
 
-            bool ret = m_util.Upload(lst_path.ToArray(), m_remote_current_path);
+            gbLocal.Enabled = false;
+            gbRemote.Enabled = false;
+            pbStatus.Visible = true;
+            lblPause.Visible = true;
+            lblStop.Visible = true;
+
+            bool ret = m_util.Upload(m_local_current_path, lst_path.ToArray(), m_remote_current_path);
             if (!ret)
             {
                 MessageBox.Show("上传文件失败：" + m_util.LastErrorStr);
             }
+
+            pbStatus.Visible = false;
+            lblPause.Visible = false;
+            lblStop.Visible = false;
+            gbLocal.Enabled = true;
+            gbRemote.Enabled = true;
+
+            lblStatus.Text = "所有操作已完成";
+            btnRemoteRefresh_Click(null, null);
         }
 
         #endregion

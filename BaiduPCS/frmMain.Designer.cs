@@ -86,6 +86,7 @@
             this.lblPause = new System.Windows.Forms.ToolStripStatusLabel();
             this.lblStop = new System.Windows.Forms.ToolStripStatusLabel();
             this.pbStatus = new System.Windows.Forms.ToolStripProgressBar();
+            this.btnClearLog = new System.Windows.Forms.Button();
             this.gbLogin.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -236,9 +237,9 @@
             // 
             // gbLog
             // 
-            this.gbLog.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.gbLog.Controls.Add(this.btnClearLog);
             this.gbLog.Controls.Add(this.lbLog);
+            this.gbLog.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbLog.Location = new System.Drawing.Point(0, 0);
             this.gbLog.Name = "gbLog";
             this.gbLog.Size = new System.Drawing.Size(830, 90);
@@ -684,6 +685,17 @@
             this.pbStatus.Step = 1;
             this.pbStatus.Visible = false;
             // 
+            // btnClearLog
+            // 
+            this.btnClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnClearLog.Location = new System.Drawing.Point(784, 0);
+            this.btnClearLog.Name = "btnClearLog";
+            this.btnClearLog.Size = new System.Drawing.Size(40, 23);
+            this.btnClearLog.TabIndex = 1;
+            this.btnClearLog.Text = "清空";
+            this.btnClearLog.UseVisualStyleBackColor = true;
+            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
+            // 
             // frmMain
             // 
             this.AcceptButton = this.btnLogin;
@@ -787,6 +799,7 @@
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
         private System.Windows.Forms.ToolStripStatusLabel lblPause;
         private System.Windows.Forms.ToolStripStatusLabel lblStop;
+        private System.Windows.Forms.Button btnClearLog;
     }
 }
 

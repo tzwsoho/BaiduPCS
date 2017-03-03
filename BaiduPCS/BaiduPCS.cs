@@ -796,7 +796,7 @@ namespace BaiduPCS
                 }
             }
 
-            Log("BDUSS = " + m_bduss);
+            //Log("BDUSS = " + m_bduss);
             if ("" == m_bduss)
             {
                 return false;
@@ -834,8 +834,8 @@ namespace BaiduPCS
                 }
             }
 
-            Log("bdstoken = " + m_bdstoken);
-            Log("sysUID = " + m_sysuid);
+            //Log("bdstoken = " + m_bdstoken);
+            //Log("sysUID = " + m_sysuid);
             return true;
         }
 
@@ -979,6 +979,7 @@ namespace BaiduPCS
             if (0 != bd_ret.m_errno ||
                 1 != bd_ret.m_info.Length)
             {
+                Log("错误码：" + bd_ret.m_errno);
                 return false;
             }
 
@@ -1400,16 +1401,96 @@ namespace BaiduPCS
         /// 一般上传
         /// </summary>
         /// <param name="fs">源文件</param>
+        /// <param name="src_file">源文件路径</param>
         /// <param name="dst_file">目标路径</param>
         /// <returns></returns>
-        private bool NormalUpload(FileStream fs, string dst_file)
+        private bool NormalUpload(FileStream fs, string src_file, string dst_file)
         {
             try
             {
+                NameValueCollection nvc = new NameValueCollection();
+                nvc.Add("method", "upload");
+                nvc.Add("app_id", "250528");
+                nvc.Add("ondup", "overwrite");
+                nvc.Add("dir", GetDirPath(dst_file));
+                nvc.Add("filename", GetDirFileName(dst_file));
+                nvc.Add("BDUSS", m_bduss);
+
+                string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
+                string url = BAIDU_PCS_REST + "?" + str_params;
+                Log("GET " + url);
+
+                string str_boundary = string.Format("----------{0}", DateTime.Now.Ticks.ToString("x"));
+
+                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
+                req.Proxy = null;
+                req.Timeout = 20000;
+                req.UserAgent = USER_AGENT;
+                req.Method = WebRequestMethods.Http.Post;
+                req.CookieContainer = m_req_cc;
+                req.ContentType = "multipart/form-data; boundary=" + str_boundary;
+
+                byte[] bytes_disposition =
+                    Encoding.UTF8.GetBytes(string.Format(
+                        "--{0}\r\nContent-Disposition: form-data; name=\"{1}\"; filename=\"{2}\"\r\nContent-Type: {3}\r\n\r\n",
+                        str_boundary,
+                        Path.GetFileName(src_file),
+                        GetDirFileName(dst_file),
+                        "application/octet-stream"));
+
+                byte[] file_content = new byte[fs.Length];
+                fs.Read(file_content, 0, file_content.Length);
+
+                byte[] bytes_footer = Encoding.UTF8.GetBytes("\r\n--" + str_boundary + "--\r\n");
+
+                req.ContentLength = bytes_disposition.Length + file_content.Length + bytes_footer.Length;
+                req.GetRequestStream().Write(bytes_disposition, 0, bytes_disposition.Length);
+                req.GetRequestStream().Write(file_content, 0, file_content.Length);
+                req.GetRequestStream().Write(bytes_footer, 0, bytes_footer.Length);
+                Log("POST " + req.ContentLength + " 字节数据至 " + url);
+
+                HttpWebResponse res = (HttpWebResponse)req.GetResponse();
+                m_http_code = res.StatusCode;
+                if (HttpStatusCode.OK != m_http_code)
+                {
+                    return false;
+                }
+
+                BinaryReader br = new BinaryReader(res.GetResponseStream());
+                byte[] html = new byte[READ_BUF_SIZE * 2];
+                int offset = 0, read_len = 0;
+                do
+                {
+                    offset += read_len;
+                    if (offset + READ_BUF_SIZE > html.Length)
+                    {
+                        Array.Resize(ref html, html.Length * 2);
+                    }
+
+                    read_len = br.Read(html, offset, READ_BUF_SIZE);
+                } while (0 != read_len);
+
+                offset += read_len;
+                Array.Resize(ref html, offset);
+
+                Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
+
+                br.Close(); res.Close();
+
+                string str_html = Encoding.UTF8.GetString(html);
+                object error_code = GetJsonValue(str_html, "error_code");
+                if (null != error_code)
+                {
+                    object error_msg = GetJsonValue(str_html, "error_msg");
+                    Log(dst_file + " 一般上传失败：" + error_code.ToString() + "，" + error_msg);
+                    return false;
+                }
+
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                m_last_error = ex.ToString();
                 return false;
             }
         }
@@ -1454,7 +1535,7 @@ namespace BaiduPCS
                     fs = File.OpenRead(kv.Key);
                     if (fs.Length < RAPIDUPLOAD_THRESHOLD)
                     {
-                        ret = NormalUpload(fs, kv.Value);
+                        ret = NormalUpload(fs, kv.Key, kv.Value);
                     }
                     else
                     {
@@ -1465,7 +1546,7 @@ namespace BaiduPCS
                         }
                         else
                         {
-                            ret = NormalUpload(fs, kv.Value);
+                            ret = NormalUpload(fs, kv.Key, kv.Value);
                         }
                     }
 

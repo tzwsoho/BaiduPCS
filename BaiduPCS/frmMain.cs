@@ -247,6 +247,11 @@ namespace BaiduPCS
             Application.DoEvents();
         }
 
+        private void btnClearLog_Click(object sender, EventArgs e)
+        {
+            lbLog.Items.Clear();
+        }
+
         private void lbLog_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             MessageBox.Show(lbLog.SelectedItem.ToString());

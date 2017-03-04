@@ -206,37 +206,37 @@ namespace BaiduPCS
 
         public void OnNewLog(string new_log)
         {
+            if (lbLog.Items.Count > 100)
+            {
+                lbLog.Items.RemoveAt(lbLog.Items.Count - 1);
+            }
+
             lbLog.Items.Insert(0, DateTime.Now.ToString("MM-dd HH:mm:ss ") + new_log);
             lbLog.TopIndex = 0;
         }
 
-        public void OnReportProgress(
-            bool is_download,
-            long current_size,
-            long total_size,
-            long current_bytes,
-            long total_bytes,
-            int current_files,
-            int total_files,
-            string local_path,
-            string remote_path)
+        public void OnReportProgress(BaiduPCSUtil.BaiduProgressInfo pi)
         {
-            double total_percent = Math.Round(current_size * 100.0 / total_size, 2);
-            double current_percent = Math.Round(current_bytes * 100.0 / total_bytes, 2);
+            long delta_ticks = DateTime.Now.Ticks - m_last_time.Ticks;
+            long rate = (delta_ticks < TimeSpan.TicksPerMillisecond ? 0 :
+                m_last_delta_size * 1000 / (delta_ticks / TimeSpan.TicksPerMillisecond));
+            double total_percent = (0 == pi.total_size ? 0.0 : Math.Round(pi.current_size * 100.0 / pi.total_size, 2));
+            double current_percent = (0 == pi.total_bytes ? 0.0 : Math.Round(pi.current_bytes * 100.0 / pi.total_bytes, 2));
             string str_status =
                 "当前文件进度：" +
-                FormatCapability(current_bytes) + "/" +
-                FormatCapability(total_bytes) +
+                FormatCapability(pi.current_bytes) + "/" +
+                FormatCapability(pi.total_bytes) +
                 "(" + current_percent + " %)，" +
                 "总进度：" +
-                FormatCapability(current_size) + "/" +
-                FormatCapability(total_size) +
+                pi.current_files + " / " + pi.total_files + "，" +
+                FormatCapability(pi.current_size) + "/" +
+                FormatCapability(pi.total_size) +
                 "(" + total_percent + " %)，" +
-                FormatCapability(m_last_delta_size) + "/s";
-            if ((DateTime.Now - m_last_time).TotalSeconds >= 1)
+                FormatCapability(rate) + "/s";
+            if (delta_ticks / TimeSpan.TicksPerSecond >= 1)
             {
-                m_last_delta_size = current_size - m_last_size;
-                m_last_size = current_size;
+                m_last_delta_size = pi.current_size - m_last_size;
+                m_last_size = pi.current_size;
                 m_last_time = DateTime.Now;
             }
 
@@ -614,6 +614,10 @@ namespace BaiduPCS
             lblPause.Visible = true;
             lblStop.Visible = true;
 
+            m_last_size = 0;
+            m_last_time = DateTime.Now;
+            long ticks = DateTime.Now.Ticks;
+
             bool ret = m_util.Upload(m_local_current_path, lst_path.ToArray(), m_remote_current_path);
             if (!ret)
             {
@@ -626,8 +630,10 @@ namespace BaiduPCS
             gbLocal.Enabled = true;
             gbRemote.Enabled = true;
 
-            lblStatus.Text = "所有操作已完成";
             btnRemoteRefresh_Click(null, null);
+            lblStatus.Text = "所有操作已完成，耗时 " +
+                (DateTime.Now.Ticks - ticks) / TimeSpan.TicksPerMillisecond +
+                " 毫秒！";
         }
 
         #endregion
@@ -937,6 +943,10 @@ namespace BaiduPCS
             lblPause.Visible = true;
             lblStop.Visible = true;
 
+            m_last_size = 0;
+            m_last_time = DateTime.Now;
+            long ticks = DateTime.Now.Ticks;
+
             bool ret = m_util.Download(m_remote_current_path, lst_path, m_local_current_path);
             if (!ret)
             {
@@ -949,8 +959,10 @@ namespace BaiduPCS
             gbLocal.Enabled = true;
             gbRemote.Enabled = true;
 
-            lblStatus.Text = "所有操作已完成";
             btnLocalRefresh_Click(null, null);
+            lblStatus.Text = "所有操作已完成，耗时 " +
+                (DateTime.Now.Ticks - ticks) / TimeSpan.TicksPerMillisecond +
+                " 毫秒！";
         }
 
         #endregion

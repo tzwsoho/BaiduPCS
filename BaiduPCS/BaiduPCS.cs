@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Net.Cache;
 using System.Web;
 using System.Drawing;
 using System.Threading;
@@ -15,11 +16,12 @@ using System.Security.Cryptography;
 
 namespace BaiduPCS
 {
-    class BaiduPCSUtil
+    public class BaiduPCSUtil
     {
         // https://github.com/GangZhuo/BaiduPCS.git
 
-        const int READ_BUF_SIZE = 1024;
+        const int NET_READ_BUF_SIZE = 1024;
+        const int LOCAL_READ_BUF_SIZE = 1024 * 1024;
         const int DOWNLOAD_BUF_SIZE = 100 * 1024;
 
         const long RAPIDUPLOAD_THRESHOLD = 256 * 1024;
@@ -123,6 +125,20 @@ namespace BaiduPCS
             internal long m_ctime;
         }
 
+        public class BaiduProgressInfo
+        {
+            internal bool is_download = false;
+            internal long current_size = 0;
+            internal long total_size = 0;
+            internal long current_bytes = 0;
+            internal long total_bytes = 0;
+            internal int current_files = 0;
+            internal int total_files = 0;
+            internal string local_file = "";
+            internal string remote_file = "";
+            internal WebClient m_web_client = null;
+        }
+
         private CookieContainer m_req_cc = null;
         private CookieCollection m_res_cc = null;
 
@@ -134,16 +150,7 @@ namespace BaiduPCS
             set { m_on_new_log = value; }
         }
 
-        public delegate void OnReportProgressDelegate(
-            bool is_download,
-            long current_size,
-            long total_size,
-            long current_bytes,
-            long total_bytes,
-            int current_files,
-            int total_files,
-            string local_path,
-            string remote_path);
+        public delegate void OnReportProgressDelegate(BaiduProgressInfo pi);
         private event OnReportProgressDelegate m_on_report_prog = null;
         public OnReportProgressDelegate OnReportProgress
         {
@@ -185,24 +192,11 @@ namespace BaiduPCS
             m_on_new_log(new_log);
         }
 
-        private void ReportProgress(
-            bool is_download,
-            long current_size,
-            long total_size,
-            long current_bytes,
-            long total_bytes,
-            int current_files,
-            int total_files,
-            string local_path,
-            string remote_path)
+        private void ReportProgress(BaiduProgressInfo pi)
         {
             if (null == m_on_report_prog) return;
 
-            m_on_report_prog(is_download,
-                current_size, total_size,
-                current_bytes, total_bytes,
-                current_files, total_files,
-                local_path, remote_path);
+            m_on_report_prog(pi);
         }
 
         /// <summary>
@@ -429,8 +423,9 @@ namespace BaiduPCS
                 req.Proxy = null;
                 req.Timeout = 20000;
                 req.UserAgent = USER_AGENT;
-                req.Method = WebRequestMethods.Http.Get;
                 req.CookieContainer = m_req_cc;
+                req.Method = WebRequestMethods.Http.Get;
+                req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
 
                 Log("GET " + url);
                 HttpWebResponse res = (HttpWebResponse)req.GetResponse();
@@ -438,17 +433,17 @@ namespace BaiduPCS
                 m_res_cc.Add(res.Cookies);
 
                 BinaryReader br = new BinaryReader(res.GetResponseStream());
-                html = new byte[READ_BUF_SIZE * 2];
+                html = new byte[NET_READ_BUF_SIZE * 2];
                 int offset = 0, read_len = 0;
                 do
                 {
                     offset += read_len;
-                    if (offset + READ_BUF_SIZE > html.Length)
+                    if (offset + NET_READ_BUF_SIZE > html.Length)
                     {
                         Array.Resize(ref html, html.Length * 2);
                     }
 
-                    read_len = br.Read(html, offset, READ_BUF_SIZE);
+                    read_len = br.Read(html, offset, NET_READ_BUF_SIZE);
                 } while (0 != read_len);
 
                 offset += read_len;
@@ -474,10 +469,11 @@ namespace BaiduPCS
                 req.Proxy = null;
                 req.Timeout = 20000;
                 req.UserAgent = USER_AGENT;
-                req.ContentType = "application/x-www-form-urlencoded";
-                req.ContentLength = post_data.Length;
-                req.Method = WebRequestMethods.Http.Post;
                 req.CookieContainer = m_req_cc;
+                req.Method = WebRequestMethods.Http.Post;
+                req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
+                req.ContentLength = post_data.Length;
+                req.ContentType = "application/x-www-form-urlencoded";
 
                 req.GetRequestStream().Write(post_data, 0, post_data.Length);
 
@@ -487,17 +483,17 @@ namespace BaiduPCS
                 m_res_cc.Add(res.Cookies);
 
                 BinaryReader br = new BinaryReader(res.GetResponseStream());
-                html = new byte[READ_BUF_SIZE * 2];
+                html = new byte[NET_READ_BUF_SIZE * 2];
                 int offset = 0, read_len = 0;
                 do
                 {
                     offset += read_len;
-                    if (offset + READ_BUF_SIZE > html.Length)
+                    if (offset + NET_READ_BUF_SIZE > html.Length)
                     {
                         Array.Resize(ref html, html.Length * 2);
                     }
 
-                    read_len = br.Read(html, offset, READ_BUF_SIZE);
+                    read_len = br.Read(html, offset, NET_READ_BUF_SIZE);
                 } while (0 != read_len);
 
                 offset += read_len;
@@ -1165,19 +1161,25 @@ namespace BaiduPCS
         /// <returns></returns>
         public bool Download(string base_path, List<BaiduFileInfo> src_path, string dst_path)
         {
-            long current_size = 0, total_size = 0;
+            BaiduProgressInfo pi = new BaiduProgressInfo();
+            pi.is_download = true;
+
             Dictionary<string, string> d_path = new Dictionary<string, string>();
-            bool ret = PrepareDownload(base_path, src_path, dst_path, ref total_size, ref d_path);
+            bool ret = PrepareDownload(base_path, src_path, dst_path, ref pi.total_size, ref d_path);
             if (!ret)
             {
                 return false;
             }
 
             m_status = 0;
-            int cur_files = 1, total_files = d_path.Count;
+            pi.current_files = 1;
+            pi.total_files = d_path.Count;
             foreach (KeyValuePair<string, string> kv in d_path)
             {
                 FileStream fs = null;
+                pi.local_file = kv.Value;
+                pi.remote_file = kv.Key;
+
                 if (1 == m_status)
                 {
                     while (1 == m_status)
@@ -1204,7 +1206,7 @@ namespace BaiduPCS
 
                     HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
                     req.Proxy = null;
-                    req.Timeout = 20000;
+                    req.Timeout = -1;
                     req.UserAgent = USER_AGENT;
                     req.Method = WebRequestMethods.Http.Get;
                     req.CookieContainer = m_req_cc;
@@ -1231,8 +1233,8 @@ namespace BaiduPCS
                     {
                         offset += read_len;
                         total_read += read_len;
-                        current_size += read_len;
-                        if (offset + READ_BUF_SIZE > buf.Length)
+                        pi.current_size += read_len;
+                        if (offset + NET_READ_BUF_SIZE > buf.Length)
                         {
                             fs.Write(buf, 0, offset);
                             offset = 0;
@@ -1251,14 +1253,10 @@ namespace BaiduPCS
                                 return false;
                             }
 
-                            ReportProgress(true,
-                                current_size, total_size,
-                                total_read, total_len,
-                                cur_files, total_files,
-                                kv.Value, kv.Key);
+                            ReportProgress(pi);
                         }
 
-                        read_len = br.Read(buf, offset, READ_BUF_SIZE);
+                        read_len = br.Read(buf, offset, NET_READ_BUF_SIZE);
                     } while (0 != read_len);
 
                     offset += read_len;
@@ -1266,20 +1264,16 @@ namespace BaiduPCS
                     fs.Write(buf, 0, offset);
                     br.Close(); res.Close();
 
-                    ReportProgress(true,
-                        current_size, total_size,
-                        total_read, total_len,
-                        cur_files, total_files,
-                        kv.Value, kv.Key);
+                    ReportProgress(pi);
 
-                    Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + total_read + " 字节！");
+                    //Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + total_read + " 字节！");
                 }
                 catch (Exception ex)
                 {
                     m_last_error = ex.ToString();
                 }
 
-                cur_files++;
+                pi.current_files++;
                 if (null != fs)
                 {
                     fs.Close();
@@ -1315,7 +1309,7 @@ namespace BaiduPCS
                     if (fi.Attributes.HasFlag(FileAttributes.Directory))
                     {
                         BaiduFileInfo bdfi = new BaiduFileInfo();
-                        string dst_dir = dst_path + "/" + Path.GetDirectoryName(str_path);
+                        string dst_dir = dst_path + "/" + Path.GetFileNameWithoutExtension(str_path);
                         MkDir(dst_dir, ref bdfi);
 
                         if (!PrepareUpload(str_path, Directory.GetFileSystemEntries(str_path), dst_dir, ref total_size, ref d_path))
@@ -1325,7 +1319,7 @@ namespace BaiduPCS
                     }
                     else
                     {
-                        total_size = fi.Length;
+                        total_size += fi.Length;
                         d_path.Add(str_path, dst_path + "/" + fi.Name);
                     }
                 }
@@ -1368,7 +1362,7 @@ namespace BaiduPCS
                 byte[] html = null;
                 if (!HttpGet(url, ref html))
                 {
-                    Log(dst_file + " 快速上传失败：" + m_http_code);
+                    Log(dst_file + " 快速上传失败：" + m_last_error);
                     return false;
                 }
 
@@ -1400,11 +1394,15 @@ namespace BaiduPCS
         /// <summary>
         /// 一般上传
         /// </summary>
-        /// <param name="fs">源文件</param>
         /// <param name="src_file">源文件路径</param>
         /// <param name="dst_file">目标路径</param>
+        /// <param name="pi">进度信息</param>
         /// <returns></returns>
-        private bool NormalUpload(FileStream fs, string src_file, string dst_file)
+        private bool NormalUpload(
+            FileStream fs,
+            string src_file,
+            string dst_file,
+            ref BaiduProgressInfo pi)
         {
             try
             {
@@ -1420,71 +1418,133 @@ namespace BaiduPCS
                 string url = BAIDU_PCS_REST + "?" + str_params;
                 Log("GET " + url);
 
+                // way 1
+                //pi.m_web_client = new WebClient();
+                //pi.m_web_client.Encoding = Encoding.UTF8;
+                //pi.m_web_client.UploadProgressChanged += new UploadProgressChangedEventHandler(wc_UploadProgressChanged);
+                //pi.m_web_client.UploadFileCompleted += new UploadFileCompletedEventHandler(m_web_client_UploadFileCompleted);
+
+                //Uri uri = new Uri(url);
+                //pi.m_web_client.Headers.Add(HttpRequestHeader.Cookie, m_req_cc.GetCookieHeader(uri));
+                //pi.m_web_client.UploadFileAsync(uri, WebRequestMethods.Http.Post, src_file, pi);
+
+                //m_status = 0;
+                //while (0 == m_status || 1 == m_status)
+                //{
+                //    System.Windows.Forms.Application.DoEvents();
+                //    System.Threading.Thread.Sleep(10);
+                //}
+
+                // way 2
                 string str_boundary = string.Format("----------{0}", DateTime.Now.Ticks.ToString("x"));
+
+                //ServicePointManager.Expect100Continue = false;
 
                 HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
                 req.Proxy = null;
-                req.Timeout = 20000;
+                req.Timeout = -1;
                 req.UserAgent = USER_AGENT;
                 req.Method = WebRequestMethods.Http.Post;
                 req.CookieContainer = m_req_cc;
+                req.KeepAlive = false;
                 req.ContentType = "multipart/form-data; boundary=" + str_boundary;
+                req.ServicePoint.Expect100Continue = false;
+                //req.ServicePoint.UseNagleAlgorithm = false;
+                //req.AllowWriteStreamBuffering = false;
+                //req.SendChunked = true;
 
                 byte[] bytes_disposition =
                     Encoding.UTF8.GetBytes(string.Format(
-                        "--{0}\r\nContent-Disposition: form-data; name=\"{1}\"; filename=\"{2}\"\r\nContent-Type: {3}\r\n\r\n",
+                        "--{0}\r\n" +
+                        "Content-Disposition: form-data; name=\"file\"; " +
+                        "filename=\"{1}\"\r\n" +
+                        "Content-Type: application/octet-stream\r\n\r\n",
                         str_boundary,
-                        Path.GetFileName(src_file),
-                        GetDirFileName(dst_file),
-                        "application/octet-stream"));
-
-                byte[] file_content = new byte[fs.Length];
-                fs.Read(file_content, 0, file_content.Length);
+                        HttpUtility.UrlEncode(GetDirFileName(dst_file))));
 
                 byte[] bytes_footer = Encoding.UTF8.GetBytes("\r\n--" + str_boundary + "--\r\n");
+                //req.ContentLength = bytes_disposition.Length + fs.Length + bytes_footer.Length;
 
-                req.ContentLength = bytes_disposition.Length + file_content.Length + bytes_footer.Length;
-                req.GetRequestStream().Write(bytes_disposition, 0, bytes_disposition.Length);
-                req.GetRequestStream().Write(file_content, 0, file_content.Length);
-                req.GetRequestStream().Write(bytes_footer, 0, bytes_footer.Length);
-                Log("POST " + req.ContentLength + " 字节数据至 " + url);
+                Stream s = req.GetRequestStream();
+                s.Write(bytes_disposition, 0, bytes_disposition.Length);
 
-                HttpWebResponse res = (HttpWebResponse)req.GetResponse();
-                m_http_code = res.StatusCode;
-                if (HttpStatusCode.OK != m_http_code)
+                pi.current_bytes = 0;
+                pi.total_bytes = fs.Length;
+                while (pi.current_bytes < pi.total_bytes)
                 {
-                    return false;
-                }
-
-                BinaryReader br = new BinaryReader(res.GetResponseStream());
-                byte[] html = new byte[READ_BUF_SIZE * 2];
-                int offset = 0, read_len = 0;
-                do
-                {
-                    offset += read_len;
-                    if (offset + READ_BUF_SIZE > html.Length)
+                    if (1 == m_status)
                     {
-                        Array.Resize(ref html, html.Length * 2);
+                        while (1 == m_status)
+                        {
+                            System.Windows.Forms.Application.DoEvents();
+                            System.Threading.Thread.Sleep(10);
+                        }
+                    }
+                    else if (2 == m_status)
+                    {
+                        return false;
                     }
 
-                    read_len = br.Read(html, offset, READ_BUF_SIZE);
-                } while (0 != read_len);
+                    long left_bytes = pi.total_bytes - pi.current_bytes;
+                    long buf_size = (left_bytes > LOCAL_READ_BUF_SIZE ? LOCAL_READ_BUF_SIZE : left_bytes);
+                    byte[] bytes_buf = new byte[buf_size];
+                    int cur_read_len = fs.Read(bytes_buf, 0, bytes_buf.Length);
+                    if (0 == cur_read_len) break;
 
-                offset += read_len;
-                Array.Resize(ref html, offset);
+                    s.Write(bytes_buf, 0, cur_read_len);
+                    pi.current_bytes += cur_read_len;
+                    pi.current_size += cur_read_len;
 
-                Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
-
-                br.Close(); res.Close();
-
-                string str_html = Encoding.UTF8.GetString(html);
-                object error_code = GetJsonValue(str_html, "error_code");
-                if (null != error_code)
-                {
-                    object error_msg = GetJsonValue(str_html, "error_msg");
-                    Log(dst_file + " 一般上传失败：" + error_code.ToString() + "，" + error_msg);
-                    return false;
+                    ReportProgress(pi);
                 }
+
+                s.Write(bytes_footer, 0, bytes_footer.Length);
+                s.Close();
+                Log("POST " + req.ContentLength + " 字节数据至 " + url);
+
+                req.BeginGetResponse((IAsyncResult ar) =>
+                    {
+                        HttpWebRequest wq = ar.AsyncState as HttpWebRequest;
+                        if (null == wq) return;
+
+                        HttpWebResponse res = wq.EndGetResponse(ar) as HttpWebResponse;
+                        if (null == res) return;
+
+                        m_http_code = res.StatusCode;
+                        if (HttpStatusCode.OK != m_http_code)
+                        {
+                            return;
+                        }
+
+                        BinaryReader br = new BinaryReader(res.GetResponseStream());
+                        byte[] html = new byte[NET_READ_BUF_SIZE * 2];
+                        int offset = 0, read_len = 0;
+                        do
+                        {
+                            offset += read_len;
+                            if (offset + NET_READ_BUF_SIZE > html.Length)
+                            {
+                                Array.Resize(ref html, html.Length * 2);
+                            }
+
+                            read_len = br.Read(html, offset, NET_READ_BUF_SIZE);
+                        } while (0 != read_len);
+
+                        offset += read_len;
+                        Array.Resize(ref html, offset);
+
+                        Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
+
+                        br.Close(); res.Close();
+
+                        string str_html = Encoding.UTF8.GetString(html);
+                        object error_code = GetJsonValue(str_html, "error_code");
+                        if (null != error_code)
+                        {
+                            object error_msg = GetJsonValue(str_html, "error_msg");
+                            Log(dst_file + " 一般上传失败：" + error_code.ToString() + "，" + error_msg);
+                        }
+                    }, req);
 
                 return true;
             }
@@ -1493,6 +1553,59 @@ namespace BaiduPCS
                 m_last_error = ex.ToString();
                 return false;
             }
+        }
+
+        void m_web_client_UploadFileCompleted(object sender, UploadFileCompletedEventArgs e)
+        {
+            m_status = 3;
+
+            BaiduProgressInfo pi = e.UserState as BaiduProgressInfo;
+            if (null == pi)
+            {
+                return;
+            }
+
+            if (null != e.Error)
+            {
+                m_last_error = e.Error.ToString();
+                return;
+            }
+
+            string str_html = Encoding.UTF8.GetString(e.Result);
+            object error_code = GetJsonValue(str_html, "error_code");
+            if (null != error_code)
+            {
+                object error_msg = GetJsonValue(str_html, "error_msg");
+                Log(pi.local_file + " 一般上传失败：" + error_code.ToString() + "，" + error_msg);
+            }
+        }
+
+        void wc_UploadProgressChanged(object sender, UploadProgressChangedEventArgs e)
+        {
+            BaiduProgressInfo pi = e.UserState as BaiduProgressInfo;
+            if (null == pi) return;
+
+            if (2 == m_status)
+            {
+                pi.m_web_client.CancelAsync();
+                return;
+            }
+
+            pi.current_bytes = e.BytesSent;
+            pi.total_bytes = e.TotalBytesToSend;
+
+            BaiduProgressInfo pi_temp = new BaiduProgressInfo();
+            pi_temp.is_download = false;
+            pi_temp.current_size = pi.current_size + e.BytesSent;
+            pi_temp.total_size = pi.total_size;
+            pi_temp.current_bytes = pi.current_bytes;
+            pi_temp.total_bytes = pi.total_bytes;
+            pi_temp.current_files = pi.current_files;
+            pi_temp.total_files = pi.total_files;
+            pi_temp.local_file = pi.local_file;
+            pi_temp.remote_file = pi.remote_file;
+
+            ReportProgress(pi_temp);
         }
 
         /// <summary>
@@ -1504,16 +1617,17 @@ namespace BaiduPCS
         /// <returns></returns>
         public bool Upload(string base_path, string[] src_path, string dst_path)
         {
-            long current_size = 0, total_size = 0;
+            BaiduProgressInfo pi = new BaiduProgressInfo();
             Dictionary<string, string> d_path = new Dictionary<string, string>();
-            bool ret = PrepareUpload(base_path, src_path, dst_path, ref total_size, ref d_path);
+            bool ret = PrepareUpload(base_path, src_path, dst_path, ref pi.total_size, ref d_path);
             if (!ret)
             {
                 return false;
             }
 
             m_status = 0;
-            int cur_files = 1, total_files = d_path.Count;
+            pi.current_files = 1;
+            pi.total_files = d_path.Count;
             foreach (KeyValuePair<string, string> kv in d_path)
             {
                 FileStream fs = null;
@@ -1535,41 +1649,36 @@ namespace BaiduPCS
                     fs = File.OpenRead(kv.Key);
                     if (fs.Length < RAPIDUPLOAD_THRESHOLD)
                     {
-                        ret = NormalUpload(fs, kv.Key, kv.Value);
+                        ret = NormalUpload(fs, kv.Key, kv.Value, ref pi);
                     }
                     else
                     {
                         ret = RapidUpload(fs, kv.Value);
-                        if (ret)
+                        if (!ret)
                         {
-                            current_size += fs.Length;
+                            ret = NormalUpload(fs, kv.Key, kv.Value, ref pi);
                         }
-                        else
-                        {
-                            ret = NormalUpload(fs, kv.Key, kv.Value);
-                        }
+
+                        pi.current_size += fs.Length;
                     }
 
                     if (!ret)
                     {
-                        fs.Close();
-                        cur_files++;
-                        continue;
+                        Log(src_path + " 上传失败！");
                     }
 
-                    ReportProgress(false,
-                        current_size, total_size,
-                        fs.Length, fs.Length,
-                        cur_files, total_files,
-                        kv.Key, kv.Value);
+                    ReportProgress(pi);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    return false;
+                    m_last_error = ex.ToString();
                 }
 
-                fs.Close();
-                cur_files++;
+                pi.current_files++;
+                if (null != fs)
+                {
+                    fs.Close();
+                }
             }
 
             return true;

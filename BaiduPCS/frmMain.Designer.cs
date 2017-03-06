@@ -42,6 +42,7 @@
             this.btnLogin = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.gbLog = new System.Windows.Forms.GroupBox();
+            this.btnClearLog = new System.Windows.Forms.Button();
             this.lbLog = new System.Windows.Forms.ListBox();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.gbLocal = new System.Windows.Forms.GroupBox();
@@ -86,7 +87,6 @@
             this.lblPause = new System.Windows.Forms.ToolStripStatusLabel();
             this.lblStop = new System.Windows.Forms.ToolStripStatusLabel();
             this.pbStatus = new System.Windows.Forms.ToolStripProgressBar();
-            this.btnClearLog = new System.Windows.Forms.Button();
             this.gbLogin.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -158,7 +158,6 @@
             this.txtPassword.PasswordChar = '*';
             this.txtPassword.Size = new System.Drawing.Size(200, 21);
             this.txtPassword.TabIndex = 3;
-            this.txtPassword.Text = "tzw19860806";
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtPassword.UseSystemPasswordChar = true;
             // 
@@ -186,7 +185,6 @@
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.Size = new System.Drawing.Size(199, 21);
             this.txtUsername.TabIndex = 1;
-            this.txtUsername.Text = "tzwsoho";
             this.txtUsername.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // btnLogout
@@ -246,6 +244,17 @@
             this.gbLog.TabIndex = 0;
             this.gbLog.TabStop = false;
             this.gbLog.Text = "通讯日志";
+            // 
+            // btnClearLog
+            // 
+            this.btnClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnClearLog.Location = new System.Drawing.Point(784, 0);
+            this.btnClearLog.Name = "btnClearLog";
+            this.btnClearLog.Size = new System.Drawing.Size(40, 23);
+            this.btnClearLog.TabIndex = 1;
+            this.btnClearLog.Text = "清空";
+            this.btnClearLog.UseVisualStyleBackColor = true;
+            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
             // 
             // lbLog
             // 
@@ -684,17 +693,6 @@
             this.pbStatus.Size = new System.Drawing.Size(100, 20);
             this.pbStatus.Step = 1;
             this.pbStatus.Visible = false;
-            // 
-            // btnClearLog
-            // 
-            this.btnClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnClearLog.Location = new System.Drawing.Point(784, 0);
-            this.btnClearLog.Name = "btnClearLog";
-            this.btnClearLog.Size = new System.Drawing.Size(40, 23);
-            this.btnClearLog.TabIndex = 1;
-            this.btnClearLog.Text = "清空";
-            this.btnClearLog.UseVisualStyleBackColor = true;
-            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
             // 
             // frmMain
             // 

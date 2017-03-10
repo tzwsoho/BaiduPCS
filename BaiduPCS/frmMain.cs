@@ -76,6 +76,8 @@ namespace BaiduPCS
         {
             InitializeComponent();
 
+            CheckForIllegalCrossThreadCalls = false;
+
             pbStatus.ControlAlign = ContentAlignment.MiddleRight;
 
             m_util.OnNewLog += new BaiduPCSUtil.OnNewLogDelegate(OnNewLog);
@@ -84,6 +86,8 @@ namespace BaiduPCS
 
         private void frmMain_Load(object sender, EventArgs e)
         {
+            cmbRemoteThreads.SelectedIndex = 0;
+
             btnLocalRefresh_Click(null, null);
         }
 
@@ -158,7 +162,7 @@ namespace BaiduPCS
 
                 MessageBox.Show("登录成功！");
             }
-            else if (10 == ret)
+            else if (100 == ret)
             {
                 MessageBox.Show("需要填写验证码！");
 
@@ -166,7 +170,7 @@ namespace BaiduPCS
             }
             else
             {
-                MessageBox.Show("登录错误：\r\n\r\n" + m_util.LastErrorStr);
+                MessageBox.Show("登录错误：" + ret);
             }
         }
 
@@ -937,6 +941,21 @@ namespace BaiduPCS
                 lst_path.Add(bdfi);
             }
 
+            int threads_max = 0;
+            switch (cmbRemoteThreads.SelectedIndex)
+            {
+                case 1:
+                    threads_max = 1;
+                    break;
+
+                case 2:
+                    threads_max = 10;
+                    break;
+
+                default:
+                    break;
+            }
+
             gbLocal.Enabled = false;
             gbRemote.Enabled = false;
             pbStatus.Visible = true;
@@ -947,7 +966,7 @@ namespace BaiduPCS
             m_last_time = DateTime.Now;
             long ticks = DateTime.Now.Ticks;
 
-            bool ret = m_util.Download(m_remote_current_path, lst_path, m_local_current_path);
+            bool ret = m_util.Download(m_remote_current_path, lst_path, m_local_current_path, threads_max);
             if (!ret)
             {
                 MessageBox.Show("下载文件失败：" + m_util.LastErrorStr);

@@ -13,30 +13,32 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
+using System.Windows.Forms;
 
 namespace BaiduPCS
 {
     public class BaiduPCSUtil
     {
-        // https://github.com/GangZhuo/BaiduPCS.git
+        #region 公共
+
+        // 参考项目：https://github.com/GangZhuo/BaiduPCS.git
 
         const int NET_READ_BUF_SIZE = 1024;
         const int LOCAL_READ_BUF_SIZE = 1024 * 1024;
         const int DOWNLOAD_BUF_SIZE = 100 * 1024;
-
+        const long SLICE_PER_THREAD = 1024 * 1024;
         const long RAPIDUPLOAD_THRESHOLD = 256 * 1024;
 
         const string BAIDU_HOME = "http://www.baidu.com";
         const string BAIDU_DISK_HOME = "http://pan.baidu.com/disk/home";
-        const string BAIDU_PASSPORT_API = "https://passport.baidu.com/v2/api/?";
-        const string BAIDU_GET_PUBLIC_KEY = "https://passport.baidu.com/v2/getpublickey?";
-        const string BAIDU_PASSPORT_LOGOUT = "https://passport.baidu.com/?logout&u=http://pan.baidu.com";
+        const string BAIDU_LOGIN = "https://passport.baidu.com/v2/api/?login";
+        const string BAIDU_STATIC_PAGE = "http://pan.baidu.com/res/static/thirdparty/pass_v3_jump.html";
+        const string BAIDU_PASSPORT_LOGOUT = "https://passport.baidu.com/?logout&u=http%3a%2f%2fpan.baidu.com";
         const string BAIDU_CAPTCHA = "https://passport.baidu.com/cgi-bin/genimage?";
         const string BAIDU_PAN_API = "http://pan.baidu.com/api/";
         const string BAIDU_PCS_REST = "http://c.pcs.baidu.com/rest/2.0/pcs/file";
-        const string USER_AGENT = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36";
-
-        #region 公共
+        //const string USER_AGENT = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36";
+        const string USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.154 Safari/537.36 LBBROWSER";
 
         [DataContract()]
         public class BaiduThumbs
@@ -140,6 +142,8 @@ namespace BaiduPCS
         }
 
         private CookieContainer m_req_cc = null;
+        public CookieContainer cc { get { return m_req_cc; } set { m_req_cc = value; } }
+
         private CookieCollection m_res_cc = null;
 
         public delegate void OnNewLogDelegate(string new_log);
@@ -205,7 +209,28 @@ namespace BaiduPCS
         /// <returns></returns>
         static public string GetTimeStamp()
         {
-            return ((long)((DateTime.Now - BASE_TIME).TotalSeconds - 8 * 3600) * 1000 & 0x7FFFFFFF).ToString();
+            return Math.Floor((DateTime.Now - BASE_TIME).TotalMilliseconds).ToString();
+            //return ((long)(DateTime.Now - BASE_TIME).TotalSeconds * 1000 & 0x7FFFFFFF).ToString();
+        }
+
+        static public string GetCallback()
+        {
+            const string CHARSET = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+            string str_ret = "";
+            int rnd = new Random().Next();
+            while (0 != rnd)
+            {
+                str_ret += CHARSET[rnd % 36];
+                rnd /= 36;
+            }
+
+            return "bd__pcbs__" + str_ret;
+        }
+
+        static public string GetGid()
+        {
+            return Guid.NewGuid().ToString().ToUpper();
         }
 
         /// <summary>
@@ -304,15 +329,23 @@ namespace BaiduPCS
             }
         }
 
-        private string GetStringIn(string str_org, string str_start, string str_end)
+        private string GetStringIn(
+            string str_source,
+            string str_start,
+            string str_end,
+            string str_find = ".+",
+            RegexOptions options = RegexOptions.None)
         {
-            Regex reg = new Regex("(?<=" + str_start + ").+" + "(?=" + str_end + ")", RegexOptions.Multiline);
-            if (!reg.IsMatch(str_org))
+            Regex reg = new Regex("(?<=" + str_start + ")" +
+                str_find +
+                "(?=" + str_end + ")",
+                options);
+            if (!reg.IsMatch(str_source))
             {
                 return "";
             }
 
-            return reg.Match(str_org).Value;
+            return reg.Match(str_source).Value;
         }
 
         private string GetNumberByKey(string str_org, string key)
@@ -351,6 +384,150 @@ namespace BaiduPCS
 
             string[] arr_path = str_path.Split("/".ToCharArray());
             return string.Join("/", arr_path, 0, arr_path.Length - 1);
+        }
+
+        private bool CompareByteArrays(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            int i = 0;
+            foreach (byte c in a)
+            {
+                if (c != b[i])
+                {
+                    return false;
+                }
+
+                i++;
+            }
+
+            return true;
+        }
+
+        private bool DecodeRSAPublicKey(byte[] pub_key, ref RSAParameters rsa_params)
+        {
+            // OBJECT IDENTIFIER: https://msdn.microsoft.com/en-us/library/bb540809
+            // CRYPT_ALGORITHM_IDENTIFIER: https://msdn.microsoft.com/zh-cn/library/aa923698
+            // encoded OID sequence for PKCS #1 rsaEncryption szOID_RSA_RSA = "1.2.840.113549.1.1.1"
+            byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
+            byte[] seq = null;
+
+            // ---------  Set up stream to read the asn.1 encoded SubjectPublicKeyInfo blob  ------
+            MemoryStream ms = new MemoryStream(pub_key);
+            BinaryReader br = new BinaryReader(ms); // wrap Memory Stream with BinaryReader for easy reading
+            byte bt = 0;
+            UInt16 twobytes = 0;
+
+            try
+            {
+                twobytes = br.ReadUInt16();
+                if (twobytes == 0x8130)	// data read as little endian order (actual data order for Sequence is 30 81)
+                {
+                    br.ReadByte(); // advance 1 byte
+                }
+                else if (twobytes == 0x8230)
+                {
+                    br.ReadInt16();	// advance 2 bytes
+                }
+                else
+                {
+                    return false;
+                }
+
+                seq = br.ReadBytes(15); // read the Sequence OID
+                if (!CompareByteArrays(seq, SeqOID)) // make sure Sequence for OID is correct
+                {
+                    return false;
+                }
+
+                twobytes = br.ReadUInt16();
+                if (twobytes == 0x8103)	// data read as little endian order (actual data order for Bit String is 03 81)
+                {
+                    br.ReadByte(); // advance 1 byte
+                }
+                else if (twobytes == 0x8203)
+                {
+                    br.ReadInt16();	// advance 2 bytes
+                }
+                else
+                {
+                    return false;
+                }
+
+                bt = br.ReadByte();
+                if (bt != 0x00) // expect null byte next
+                {
+                    return false;
+                }
+
+                twobytes = br.ReadUInt16();
+                if (twobytes == 0x8130)	// data read as little endian order (actual data order for Sequence is 30 81)
+                {
+                    br.ReadByte(); // advance 1 byte
+                }
+                else if (twobytes == 0x8230)
+                {
+                    br.ReadInt16();	// advance 2 bytes
+                }
+                else
+                {
+                    return false;
+                }
+
+                twobytes = br.ReadUInt16();
+                byte lowbyte = 0x00;
+                byte highbyte = 0x00;
+
+                if (twobytes == 0x8102)	// data read as little endian order (actual data order for Integer is 02 81)
+                {
+                    lowbyte = br.ReadByte(); // read next bytes which is bytes in modulus
+                }
+                else if (twobytes == 0x8202)
+                {
+                    highbyte = br.ReadByte(); // advance 2 bytes
+                    lowbyte = br.ReadByte();
+                }
+                else
+                {
+                    return false;
+                }
+
+                byte[] modint = { lowbyte, highbyte, 0x00, 0x00 }; // reverse byte order since asn.1 key uses big endian order
+                int modsize = BitConverter.ToInt32(modint, 0);
+
+                byte firstbyte = br.ReadByte();
+                br.BaseStream.Seek(-1, SeekOrigin.Current);
+
+                if (firstbyte == 0x00)
+                {
+                    // if first byte (highest order) of modulus is zero, don't include it
+                    br.ReadByte(); // skip this null byte
+                    modsize -= 1; // reduce modulus buffer size by 1
+                }
+
+                byte[] modulus = br.ReadBytes(modsize);	// read the modulus bytes
+
+                if (br.ReadByte() != 0x02) // expect an Integer for the exponent data
+                {
+                    return false;
+                }
+
+                int expbytes = (int)br.ReadByte(); // should only need one byte for actual exponent data (for all useful values)
+                byte[] exponent = br.ReadBytes(expbytes);
+
+                // ------- create RSACryptoServiceProvider instance and initialize with public key -----
+                rsa_params.Modulus = modulus;
+                rsa_params.Exponent = exponent;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
         }
 
         private string MD5File(FileStream fs, long offset = 0, long length = 0)
@@ -427,7 +604,8 @@ namespace BaiduPCS
                 req.Method = WebRequestMethods.Http.Get;
                 req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
 
-                Log("GET " + url);
+                //Log("GET " + url);
+
                 HttpWebResponse res = (HttpWebResponse)req.GetResponse();
                 m_http_code = res.StatusCode;
                 m_res_cc.Add(res.Cookies);
@@ -449,7 +627,7 @@ namespace BaiduPCS
                 offset += read_len;
                 Array.Resize(ref html, offset);
 
-                Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
+                //Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
 
                 br.Close(); res.Close();
                 return true;
@@ -461,7 +639,7 @@ namespace BaiduPCS
             }
         }
 
-        private bool HttpPost(string url, ref byte[] html, ref byte[] post_data)
+        private bool HttpPost(string url, ref byte[] html, byte[] post_data)
         {
             try
             {
@@ -477,7 +655,8 @@ namespace BaiduPCS
 
                 req.GetRequestStream().Write(post_data, 0, post_data.Length);
 
-                Log("POST " + post_data.Length + " 字节数据至 " + url);
+                //Log("POST " + post_data.Length + " 字节数据至 " + url);
+
                 HttpWebResponse res = (HttpWebResponse)req.GetResponse();
                 m_http_code = res.StatusCode;
                 m_res_cc.Add(res.Cookies);
@@ -499,7 +678,7 @@ namespace BaiduPCS
                 offset += read_len;
                 Array.Resize(ref html, offset);
 
-                Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
+                //Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
 
                 br.Close(); res.Close();
                 return true;
@@ -517,6 +696,8 @@ namespace BaiduPCS
 
         private string m_code_string = "";
         private string m_token = "";
+        private string m_rsa_key = "";
+        private string m_enc_password = "";
         private string m_bdstoken = "";
         private string m_bduss = "";
 
@@ -526,7 +707,7 @@ namespace BaiduPCS
             get { return m_sysuid; }
         }
 
-        private int PreLogin(string username)
+        private int PreLogin(string username, string password)
         {
             byte[] html = null;
 
@@ -537,9 +718,19 @@ namespace BaiduPCS
                 return 1;
             }
 
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            int retry_token_times = 0;
             Log("登录第一步，获取 token");
-            const string LOGIN_STEP1_URL = "https://passport.baidu.com/v2/api/?getapi&tpl=netdisk&apiver=v3&tt={0}&class=login&logintype=basicLogin&callback=bd__cbs__pwxtn7";
-            ret = HttpGet(string.Format(LOGIN_STEP1_URL, GetTimeStamp()), ref html);
+
+retry_token:
+            const string LOGIN_STEP1_URL = "https://passport.baidu.com/v2/api/?getapi&tpl=netdisk&subpro=netdisk_web&apiver=v3&class=login&logintype=basicLogin" +
+                "&tt={0}" +
+                "&gid={1}" +
+                "&callback={2}";
+            string url = string.Format(LOGIN_STEP1_URL, GetTimeStamp(), GetGid(), GetCallback());
+
+            ret = HttpGet(url, ref html);
             if (!ret || null == html)
             {
                 return 2;
@@ -552,193 +743,255 @@ namespace BaiduPCS
                 return 3;
             }
 
-            object code_string = GetJsonValue(str_step1, "data.codeString");
-            object token = GetJsonValue(str_step1, "data.token");
-            if (null == code_string ||
-                null == token ||
-                !(code_string is string) ||
-                !(token is string))
+            object err_no = GetJsonValue(str_step1, "errInfo.no");
+            if (null != err_no &&
+                "0" != err_no.ToString())
             {
+                m_last_error = "错误码：" + err_no.ToString();
+                Log("获取 token 错误：" + err_no.ToString());
                 return 4;
             }
 
-            Log("token = " + token.ToString());
-            foreach (char c in token.ToString().ToCharArray())
+            object token = GetJsonValue(str_step1, "data.token");
+            if (null == token ||
+                !(token is string))
             {
-                if (!char.IsLetterOrDigit(c))
+                return 5;
+            }
+
+            Log("token = " + token.ToString());
+            Regex reg_token = new Regex("[0-9a-fA-F]{32}");
+            if (!reg_token.IsMatch(token.ToString()))
+            {
+                retry_token_times++;
+                if (retry_token_times > 3)
                 {
-                    return 5;
+                    Log("重复获取 token 失败！");
+                    return 6;
                 }
+
+                goto retry_token;
             }
 
             m_token = token.ToString();
 
-            Log("codeString = " + code_string.ToString());
-            if ("" != code_string.ToString()) // 需要验证码
-            {
-                m_code_string = code_string.ToString();
-                return 10;
-            }
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-            Log("登录第二步，获取 codeString");
-            const string LOGIN_STEP2_URL = "https://passport.baidu.com/v2/api/?logincheck&token={0}&tpl=netdisk&apiver=v3&tt={1}&username={2}&isphone=false&callback=bd__cbs__q4ztud";
-            ret = HttpGet(string.Format(LOGIN_STEP2_URL, m_token, GetTimeStamp(), username), ref html);
+            Log("登录第二步，获取公钥证书和 RSA 密钥");
+            const string LOGIN_STEP2_URL = "https://passport.baidu.com/v2/getpublickey?tpl=netdisk&subpro=netdisk_web&apiver=v3" +
+                "&token={0}" +
+                "&tt={1}" +
+                "&gid={2}" +
+                "&callback={3}";
+            url = string.Format(LOGIN_STEP2_URL, m_token, GetTimeStamp(), GetGid(), GetCallback());
+            ret = HttpGet(url, ref html);
             if (!ret || null == html)
             {
-                return 6;
+                return 7;
             }
 
             str_html = Encoding.UTF8.GetString(html);
             string str_step2 = GetStringIn(str_html, "\\(", "\\)");
             if ("" == str_step2)
             {
-                return 7;
-            }
-
-            code_string = GetJsonValue(str_step2, "data.codeString");
-            if (null == code_string ||
-                !(code_string is string))
-            {
                 return 8;
             }
 
-            // 需要验证码
-            Log("codeString = " + code_string.ToString());
-            if ("" != code_string.ToString())
+            err_no = GetJsonValue(str_step2, "errno");
+            object err_msg = GetJsonValue(str_step2, "msg");
+            if (null != err_no ||
+                null != err_msg)
             {
-                m_code_string = code_string.ToString();
+                if ("0" != err_no.ToString())
+                {
+                    Log("获取公钥失败：errno = " + err_no + ", msg = " + err_msg);
+                    return 9;
+                }
+            }
+
+            object public_key = GetJsonValue(str_step2, "pubkey");
+            object rsa_key = GetJsonValue(str_step2, "key");
+            if (null == public_key ||
+                null == rsa_key)
+            {
+                Log("公钥或 RSA 密钥为空：pubkey = " + public_key + ", key = " + rsa_key);
                 return 10;
+            }
+
+            m_rsa_key = rsa_key.ToString();
+
+            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
+            {
+                using (SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider())
+                {
+                    string str_pubkey = GetStringIn(
+                        public_key.ToString().Replace("\n", ""),
+                        "-*BEGIN PUBLIC KEY-*",
+                        "-*END PUBLIC KEY-*").Trim("-".ToCharArray());
+
+                    RSAParameters rsa_params = new RSAParameters();
+                    if (!DecodeRSAPublicKey(Convert.FromBase64String(str_pubkey), ref rsa_params))
+                    {
+                        Log("解析 RSA 公钥失败！");
+                        return 11;
+                    }
+
+                    rsa.PersistKeyInCsp = false;
+                    rsa.ImportParameters(rsa_params);
+                    byte[] bytes_out = rsa.Encrypt(Encoding.UTF8.GetBytes(password), false);
+                    m_enc_password = Convert.ToBase64String(bytes_out);
+                }
             }
 
             return 0;
         }
 
-        private int DoLogin(string username, string password, string captcha)
+        private int DoLogin(string username, string captcha)
         {
-            NameValueCollection nvc = new NameValueCollection();
-            nvc.Add("staticpage", "http://pan.baidu.com/res/static/thirdparty/pass_v3_jump.html");
-            nvc.Add("charset", "utf-8");
-            nvc.Add("token", m_token);
-            nvc.Add("tpl", "netdisk");
-            nvc.Add("subpro", "");
-            nvc.Add("apiver", "v3");
-            nvc.Add("tt", GetTimeStamp());
-            nvc.Add("codestring", m_code_string);
-            nvc.Add("safeflg", "0");
-            nvc.Add("u", "http://pan.baidu.com/");
-            nvc.Add("isPhone", "");
-            nvc.Add("quick_user", "0");
-            nvc.Add("logintype", "basicLogin");
-            nvc.Add("logLoginType", "pc_loginBasic");
-            nvc.Add("idc", "");
-            nvc.Add("loginmerge", "true");
-            nvc.Add("username", username);
-            nvc.Add("password", password);
-            nvc.Add("verifycode", captcha);
-            nvc.Add("mem_pass", "on");
-            nvc.Add("rsakey", "");
-            nvc.Add("crypttype", "");
-            nvc.Add("ppui_logintime", "2602");
-            nvc.Add("callback", "parent.bd__pcbs__msdlhs");
-
-            byte[] html = null;
-            byte[] post_data = BuildKeyValueParams(nvc);
-            bool ret = HttpPost(BAIDU_PASSPORT_API + "login", ref html, ref post_data);
-            if (!ret)
+            try
             {
-                return 20;
-            }
+                NameValueCollection nvc = new NameValueCollection();
+                nvc.Add("apiver", "v3");
+                nvc.Add("charset", "utf-8");
+                nvc.Add("countrycode", "");
+                nvc.Add("crypttype", "12");
+                nvc.Add("detect", "1");
+                nvc.Add("foreignusername", "");
+                nvc.Add("gid", GetGid());
+                nvc.Add("idc", "");
+                nvc.Add("isPhone", "");
+                nvc.Add("logLoginType", "pc_loginBasic");
+                nvc.Add("loginmerge", "true");
+                nvc.Add("logintype", "basicLogin");
+                nvc.Add("mem_pass", "on");
+                nvc.Add("password", m_enc_password);
+                nvc.Add("ppui_logintime", new Random().Next(3000, 10000).ToString());
+                nvc.Add("quick_user", "0");
+                nvc.Add("rsakey", m_rsa_key);
+                nvc.Add("safeflg", "0");
+                nvc.Add("staticpage", BAIDU_STATIC_PAGE);
+                nvc.Add("subpro", "netdisk_web");
+                nvc.Add("token", m_token);
+                nvc.Add("tpl", "netdisk");
+                nvc.Add("tt", GetTimeStamp());
+                nvc.Add("u", BAIDU_DISK_HOME);
+                nvc.Add("username", username);
+                nvc.Add("verifycode", captcha);
+                byte[] post_data = BuildKeyValueParams(nvc);
 
-            int err_no = 0;
-            string str_html = Encoding.UTF8.GetString(html);
-            string str_err_no = GetNumberByKey(str_html, "err_no");
-            if ("" == str_err_no ||
-                !int.TryParse(str_err_no, out err_no))
-            {
-                str_err_no = GetNumberByKey(str_html, "error");
-                if ("" == str_err_no ||
-                    !int.TryParse(str_err_no, out err_no))
+                byte[] html = null;
+                bool ret = HttpPost(BAIDU_LOGIN, ref html, post_data);
+                if (!ret || null == html)
                 {
+                    return 20;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                string str_href = GetStringIn(str_html, "href\\s+\\+\\=\\s+\"", "\"\\+accounts;");
+                string str_err_no = GetStringIn(str_href, "err_no\\=", "&", "\\d+");
+                if ("0" != str_err_no)
+                {
+                    Log("登录返回错误码：" + str_err_no);
                     return 21;
                 }
-            }
 
-            Log("err_no = " + err_no);
-            switch (err_no)
-            {
-                // 登录成功
-                case 0:
-                case 18:
-                case 400032:
-                case 400034:
-                case 400037:
-                case 400401:
-                    {
-                        string str_jump_url = GetStringIn(str_html, "decodeURIComponent\\(\"", "\"\\)\\+\"\\?\"");
-                        string str_account = GetStringIn(str_html, "var\\s+accounts\\s+\\= '", "'\n\n");
-                        string str_href = GetStringIn(str_html, "href\\s+\\+\\=\\s+\"", "\"\\+accounts;");
-                        str_jump_url = str_jump_url.Replace("\\", "") + "?" + str_href + str_account;
-                        Log("jump_url = " + str_jump_url);
+                string str_jump_url = GetStringIn(str_html, "decodeURIComponent\\(\"", "\"\\)\\+\"\\?\"");
+                string str_account = GetStringIn(str_html, "var\\s+accounts\\s+\\= '", "'\n\n");
+                str_jump_url = str_jump_url.Replace("\\", "") + "?" + str_href + str_account;
+                NameValueCollection nvc_href = HttpUtility.ParseQueryString(str_href);
+                Log("jump_url = " + str_jump_url);
+                Log("href = " + str_href);
 
-                        ret = HttpGet(str_jump_url, ref html);
-                        if (!ret)
+                ret = HttpGet(str_jump_url, ref html);
+                if (!ret)
+                {
+                    return 22;
+                }
+
+                string str_json = GetStringIn(str_html, "\\(", "\\)");
+                if ("" == str_json)
+                {
+                    return 23;
+                }
+
+                dynamic ret_obj = new JavaScriptSerializer().DeserializeObject(str_json);
+                int err_no = ret_obj.err_no;
+                if (0 != err_no)
+                {
+                    Log("登录返回错误码：" + err_no);
+                    return 24;
+                }
+
+                if ("" != ret_obj.codeString) // 需要验证码
+                {
+                    m_code_string = ret_obj.codeString;
+                    Log("codeString = " + m_code_string);
+                    return 100;
+                }
+
+                switch (err_no)
+                {
+                    // 登录成功
+                    case 0:
+                    case 18:
+                    case 400032:
+                    case 400034:
+                    case 400037:
+                    case 400401:
                         {
-                            return 22;
-                        }
-
-                        if (HttpStatusCode.OK != m_http_code)
-                        {
-                            return 23;
-                        }
-
-                        if (IsLogin())
-                        {
-                            return 0;
-                        }
-                    }
-                    break;
-
-                // 需要验证码
-                case 3:
-                case 6:
-                case 257:
-                case 200010:
-                    {
-                        string str_href = GetStringIn(str_html, "href\\s+\\+\\=\\s+\"", "\"\\+accounts;");
-                        Log("href = " + str_href);
-
-                        NameValueCollection nvc_href = HttpUtility.ParseQueryString(str_href);
-                        foreach (string key in nvc_href.AllKeys)
-                        {
-                            if (0 == string.Compare("codeString", key))
+                            if (IsLogin())
                             {
-                                m_code_string = nvc_href[key];
-                                Log("codeString = " + nvc_href[key]);
-                                break;
+                                return 0;
                             }
                         }
-                    }
-                    return 10;
+                        break;
 
-                // 需要跳转
-                case 120019:
-                case 120021:
-                    {
-                        string authtoken = GetStringIn(str_html, "&authtoken\\s*\\=\\s*", "[&\"]");
-                        string gotourl = GetStringIn(str_html, "&gotourl\\s*\\=\\s*", "[&\"]");
-                        Log("authtoken = " + authtoken);
-                        Log("gotourl = " + gotourl);
+                    // 需要验证码
+                    case 3:
+                    case 6:
+                    case 257:
+                    case 200010:
+                        {
+                            if (null != nvc_href.Get("codeString"))
+                            {
+                                m_code_string = nvc_href["codeString"];
+                                Log("codeString = " + nvc_href["codeString"]);
+                            }
+                        }
+                        return 25;
 
-                        // TODO
-                        return err_no;
-                    }
-                //break;
+                    // 需要跳转
+                    case 120019:
+                    case 120021:
+                        {
+                            string authtoken = "", gotourl = "";
+                            if (null != nvc_href.Get("authtoken"))
+                            {
+                                authtoken = nvc_href["authtoken"];
+                                Log("authtoken = " + authtoken);
+                            }
 
-                default:
-                    return err_no;
+                            if (null != nvc_href.Get("gotourl"))
+                            {
+                                gotourl = nvc_href["gotourl"];
+                                Log("gotourl = " + gotourl);
+                            }
+
+                            // TODO
+                        }
+                        return 26;
+
+                    default:
+                        return 27;
+                }
+
+                return 0;
             }
-
-            return 0;
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return 99;
+            }
         }
 
         /// <summary>
@@ -754,14 +1007,14 @@ namespace BaiduPCS
             if ("" == captcha &&
                 "" == m_code_string)
             {
-                ret = PreLogin(username);
+                ret = PreLogin(username, password);
                 if (0 != ret)
                 {
                     return ret;
                 }
             }
 
-            ret = DoLogin(username, password, captcha);
+            ret = DoLogin(username, captcha);
             if (0 != ret)
             {
                 return ret;
@@ -870,6 +1123,45 @@ namespace BaiduPCS
             return bmp_captcha;
         }
 
+        public bool VerifyCaptcha(string captcha)
+        {
+            const string VERIFY_CAPTCHA_URL = "https://passport.baidu.com/v2/?checkvcode&tpl=netdisk&subpro=netdisk_web&apiver=v3" +
+                "&token={0}" +
+                "&tt={1}" +
+                "&verifyCode={2}" +
+                "&codeString={3}" +
+                "&callback={4}";
+
+            try
+            {
+                byte[] html = null;
+                string url = string.Format(VERIFY_CAPTCHA_URL, m_token, GetTimeStamp(), captcha, m_code_string, GetCallback());
+                bool ret = HttpGet(url, ref html);
+                if (!ret || null == html)
+                {
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                if ("" == str_html)
+                {
+                    return false;
+                }
+
+                if (str_html.Contains("验证码错误"))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
+        }
+
         #endregion
 
         #region 文件操作
@@ -957,7 +1249,7 @@ namespace BaiduPCS
         private bool DoBaiduFileManagerAPI(string str_params, byte[] post_data)
         {
             byte[] html = null;
-            bool ret = HttpPost(BAIDU_PAN_API + "filemanager?" + str_params, ref html, ref post_data);
+            bool ret = HttpPost(BAIDU_PAN_API + "filemanager?" + str_params, ref html, post_data);
             if (!ret)
             {
                 return false;
@@ -1068,7 +1360,7 @@ namespace BaiduPCS
             byte[] bytes_post = BuildKeyValueParams(nvc_post);
 
             byte[] html = null;
-            bool ret = HttpPost(BAIDU_PAN_API + "create?" + str_params, ref html, ref bytes_post);
+            bool ret = HttpPost(BAIDU_PAN_API + "create?" + str_params, ref html, bytes_post);
             if (!ret)
             {
                 return false;
@@ -1097,6 +1389,21 @@ namespace BaiduPCS
             return true;
         }
 
+        #endregion
+
+        #region 下载
+
+        private class BaiduDownloadThreadInfo
+        {
+            internal long m_from = 0;
+            internal long m_to = 0;
+            internal string m_local_path = "";
+            internal string m_remote_path = "";
+        }
+
+        private ManualResetEvent m_mre = null;
+        private BaiduProgressInfo m_pi = null;
+
         /// <summary>
         /// 创建下载目录
         /// </summary>
@@ -1117,7 +1424,7 @@ namespace BaiduPCS
             {
                 foreach (BaiduFileInfo bdfi in src_path)
                 {
-                    System.Windows.Forms.Application.DoEvents();
+                    Application.DoEvents();
 
                     if (1 == bdfi.m_is_dir)
                     {
@@ -1152,40 +1459,141 @@ namespace BaiduPCS
             }
         }
 
+        private void DownloadThread(object user_object)
+        {
+            if (null == m_mre) return;
+
+            BaiduDownloadThreadInfo bddti = user_object as BaiduDownloadThreadInfo;
+            if (null == bddti) return;
+
+            if (1 == m_status)
+            {
+                while (1 == m_status)
+                {
+                    Application.DoEvents();
+                    Thread.Sleep(10);
+                }
+            }
+            else if (2 == m_status)
+            {
+                return;
+            }
+
+            try
+            {
+                int tries = 0;
+                HttpWebResponse res = null;
+                while (tries < 3)
+                {
+                    NameValueCollection nvc = new NameValueCollection();
+                    nvc.Add("method", "download");
+                    nvc.Add("app_id", "250528");
+                    nvc.Add("path", bddti.m_remote_path);
+
+                    string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
+                    string url = BAIDU_PCS_REST + "?" + str_params;
+                    //Log("GET " + url);
+
+                    HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
+                    req.Proxy = null;
+                    req.Timeout = 20000;
+                    req.UserAgent = USER_AGENT;
+                    req.Method = WebRequestMethods.Http.Get;
+                    req.AddRange(bddti.m_from, bddti.m_to);
+                    req.CookieContainer = m_req_cc;
+
+                    res = (HttpWebResponse)req.GetResponse();
+                    if (HttpStatusCode.OK == res.StatusCode)
+                    {
+                        break;
+                    }
+
+                    tries++;
+                    Thread.Sleep(1000);
+                }
+
+                if (tries >= 3)
+                {
+                    m_mre.WaitOne();
+                    m_mre.Reset();
+                    m_last_error = "区段 " + bddti.m_from + " - " + bddti.m_to + " 下载失败！";
+                    Log(m_last_error);
+                    m_mre.Set();
+                    return;
+                }
+
+                int offset = 0, read_len = 0;
+                byte[] buf = new byte[res.ContentLength];
+                BinaryReader br = new BinaryReader(res.GetResponseStream());
+                do
+                {
+                    offset += read_len;
+                    read_len = br.Read(buf, offset, NET_READ_BUF_SIZE);
+                } while (0 != read_len);
+
+                br.Close(); res.Close();
+
+                m_mre.WaitOne();
+                m_mre.Reset();
+                if (null == m_mre) return;
+
+                FileStream fs = File.OpenWrite(bddti.m_local_path);
+                fs.Seek(bddti.m_from, SeekOrigin.Begin);
+                fs.Write(buf, 0, buf.Length);
+                fs.Close();
+
+                m_pi.current_size += buf.LongLength;
+                m_pi.current_bytes += buf.LongLength;
+                ReportProgress(m_pi);
+
+                m_mre.Set();
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+            }
+        }
+
         /// <summary>
         /// 下载文件(夹)
         /// </summary>
         /// <param name="base_path">当前远程目录</param>
         /// <param name="src_path">远程源路径</param>
         /// <param name="dst_path">本地目标路径</param>
+        /// <param name="threads_max">线程数量</param>
         /// <returns></returns>
-        public bool Download(string base_path, List<BaiduFileInfo> src_path, string dst_path)
+        public bool Download(string base_path, List<BaiduFileInfo> src_path, string dst_path, int threads_max = 0)
         {
-            BaiduProgressInfo pi = new BaiduProgressInfo();
-            pi.is_download = true;
+            m_pi = new BaiduProgressInfo();
+            m_pi.is_download = true;
 
             Dictionary<string, string> d_path = new Dictionary<string, string>();
-            bool ret = PrepareDownload(base_path, src_path, dst_path, ref pi.total_size, ref d_path);
+            bool ret = PrepareDownload(base_path, src_path, dst_path, ref m_pi.total_size, ref d_path);
             if (!ret)
             {
                 return false;
             }
 
+            if (threads_max >= 1 &&
+                threads_max <= 100)
+            {
+                ThreadPool.SetMaxThreads(threads_max, threads_max);
+            }
+
             m_status = 0;
-            pi.current_files = 1;
-            pi.total_files = d_path.Count;
+            m_pi.current_files = 1;
+            m_pi.total_files = d_path.Count;
             foreach (KeyValuePair<string, string> kv in d_path)
             {
-                FileStream fs = null;
-                pi.local_file = kv.Value;
-                pi.remote_file = kv.Key;
+                m_pi.local_file = kv.Value;
+                m_pi.remote_file = kv.Key;
 
                 if (1 == m_status)
                 {
                     while (1 == m_status)
                     {
-                        System.Windows.Forms.Application.DoEvents();
-                        System.Threading.Thread.Sleep(10);
+                        Application.DoEvents();
+                        Thread.Sleep(10);
                     }
                 }
                 else if (2 == m_status)
@@ -1202,7 +1610,7 @@ namespace BaiduPCS
 
                     string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
                     string url = BAIDU_PCS_REST + "?" + str_params;
-                    Log("GET " + url);
+                    //Log("GET " + url);
 
                     HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
                     req.Proxy = null;
@@ -1212,76 +1620,57 @@ namespace BaiduPCS
                     req.CookieContainer = m_req_cc;
 
                     HttpWebResponse res = (HttpWebResponse)req.GetResponse();
-                    m_http_code = res.StatusCode;
-
-                    if (HttpStatusCode.OK != m_http_code)
+                    if (HttpStatusCode.OK != res.StatusCode)
                     {
-                        Log(kv.Key + " 下载失败：" + m_http_code);
+                        m_last_error = "返回状态码：" + res.StatusCode;
+                        Log(kv.Key + " 下载失败：" + res.StatusCode);
                         continue;
                     }
 
-                    int offset = 0, read_len = 0;
+                    m_pi.total_bytes = 0;
+                    m_pi.current_bytes = 0;
+                    m_pi.total_bytes = res.ContentLength;
 
-                    long total_read = 0;
-                    long total_len = res.ContentLength;
-
-                    byte[] buf = new byte[DOWNLOAD_BUF_SIZE];
-
-                    fs = File.OpenWrite(kv.Value);
-                    BinaryReader br = new BinaryReader(res.GetResponseStream());
-                    do
+                    long parts = (0 == res.ContentLength / SLICE_PER_THREAD ?
+                        res.ContentLength / SLICE_PER_THREAD :
+                        res.ContentLength / SLICE_PER_THREAD + 1);
+                    for (long i = 0; i < parts; i++)
                     {
-                        offset += read_len;
-                        total_read += read_len;
-                        pi.current_size += read_len;
-                        if (offset + NET_READ_BUF_SIZE > buf.Length)
-                        {
-                            fs.Write(buf, 0, offset);
-                            offset = 0;
+                        BaiduDownloadThreadInfo bddti = new BaiduDownloadThreadInfo();
+                        bddti.m_remote_path = kv.Key;
+                        bddti.m_local_path = kv.Value;
+                        bddti.m_from = i * SLICE_PER_THREAD;
+                        bddti.m_to = ((i + 1) * SLICE_PER_THREAD > res.ContentLength ?
+                            res.ContentLength : (i + 1) * SLICE_PER_THREAD);
 
-                            if (1 == m_status)
-                            {
-                                while (1 == m_status)
-                                {
-                                    System.Windows.Forms.Application.DoEvents();
-                                    System.Threading.Thread.Sleep(10);
-                                }
-                            }
-                            else if (2 == m_status)
-                            {
-                                br.Close(); fs.Close(); res.Close();
-                                return false;
-                            }
+                        ThreadPool.QueueUserWorkItem(new WaitCallback(DownloadThread), bddti);
+                    }
 
-                            ReportProgress(pi);
-                        }
+                    int worker_threads = 0, io_threads = 0;
+                    int max_worker_threads = 0, max_io_threads = 0;
+                    ThreadPool.GetMaxThreads(out max_worker_threads, out max_io_threads);
+                    while (worker_threads < max_worker_threads)
+                    {
+                        ThreadPool.GetAvailableThreads(out worker_threads, out io_threads);
 
-                        read_len = br.Read(buf, offset, NET_READ_BUF_SIZE);
-                    } while (0 != read_len);
-
-                    offset += read_len;
-                    total_read += read_len;
-                    fs.Write(buf, 0, offset);
-                    br.Close(); res.Close();
-
-                    ReportProgress(pi);
-
-                    //Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + total_read + " 字节！");
+                        Application.DoEvents();
+                        Thread.Sleep(10);
+                    }
                 }
                 catch (Exception ex)
                 {
                     m_last_error = ex.ToString();
                 }
 
-                pi.current_files++;
-                if (null != fs)
-                {
-                    fs.Close();
-                }
+                m_pi.current_files++;
             }
 
             return true;
         }
+
+        #endregion
+
+        #region 上传
 
         /// <summary>
         /// 创建上传目录
@@ -1303,7 +1692,7 @@ namespace BaiduPCS
             {
                 foreach (string str_path in src_path)
                 {
-                    System.Windows.Forms.Application.DoEvents();
+                    Application.DoEvents();
 
                     FileInfo fi = new FileInfo(str_path);
                     if (fi.Attributes.HasFlag(FileAttributes.Directory))
@@ -1396,13 +1785,11 @@ namespace BaiduPCS
         /// </summary>
         /// <param name="src_file">源文件路径</param>
         /// <param name="dst_file">目标路径</param>
-        /// <param name="pi">进度信息</param>
         /// <returns></returns>
         private bool NormalUpload(
             FileStream fs,
             string src_file,
-            string dst_file,
-            ref BaiduProgressInfo pi)
+            string dst_file)
         {
             try
             {
@@ -1431,8 +1818,8 @@ namespace BaiduPCS
                 //m_status = 0;
                 //while (0 == m_status || 1 == m_status)
                 //{
-                //    System.Windows.Forms.Application.DoEvents();
-                //    System.Threading.Thread.Sleep(10);
+                //    Application.DoEvents();
+                //    Thread.Sleep(10);
                 //}
 
                 // way 2
@@ -1468,16 +1855,16 @@ namespace BaiduPCS
                 Stream s = req.GetRequestStream();
                 s.Write(bytes_disposition, 0, bytes_disposition.Length);
 
-                pi.current_bytes = 0;
-                pi.total_bytes = fs.Length;
-                while (pi.current_bytes < pi.total_bytes)
+                m_pi.current_bytes = 0;
+                m_pi.total_bytes = fs.Length;
+                while (m_pi.current_bytes < m_pi.total_bytes)
                 {
                     if (1 == m_status)
                     {
                         while (1 == m_status)
                         {
-                            System.Windows.Forms.Application.DoEvents();
-                            System.Threading.Thread.Sleep(10);
+                            Application.DoEvents();
+                            Thread.Sleep(10);
                         }
                     }
                     else if (2 == m_status)
@@ -1485,17 +1872,17 @@ namespace BaiduPCS
                         return false;
                     }
 
-                    long left_bytes = pi.total_bytes - pi.current_bytes;
+                    long left_bytes = m_pi.total_bytes - m_pi.current_bytes;
                     long buf_size = (left_bytes > LOCAL_READ_BUF_SIZE ? LOCAL_READ_BUF_SIZE : left_bytes);
                     byte[] bytes_buf = new byte[buf_size];
                     int cur_read_len = fs.Read(bytes_buf, 0, bytes_buf.Length);
                     if (0 == cur_read_len) break;
 
                     s.Write(bytes_buf, 0, cur_read_len);
-                    pi.current_bytes += cur_read_len;
-                    pi.current_size += cur_read_len;
+                    m_pi.current_bytes += cur_read_len;
+                    m_pi.current_size += cur_read_len;
 
-                    ReportProgress(pi);
+                    ReportProgress(m_pi);
                 }
 
                 s.Write(bytes_footer, 0, bytes_footer.Length);
@@ -1617,17 +2004,19 @@ namespace BaiduPCS
         /// <returns></returns>
         public bool Upload(string base_path, string[] src_path, string dst_path)
         {
-            BaiduProgressInfo pi = new BaiduProgressInfo();
+            m_pi = new BaiduProgressInfo();
+            m_pi.is_download = false;
+
             Dictionary<string, string> d_path = new Dictionary<string, string>();
-            bool ret = PrepareUpload(base_path, src_path, dst_path, ref pi.total_size, ref d_path);
+            bool ret = PrepareUpload(base_path, src_path, dst_path, ref m_pi.total_size, ref d_path);
             if (!ret)
             {
                 return false;
             }
 
             m_status = 0;
-            pi.current_files = 1;
-            pi.total_files = d_path.Count;
+            m_pi.current_files = 1;
+            m_pi.total_files = d_path.Count;
             foreach (KeyValuePair<string, string> kv in d_path)
             {
                 FileStream fs = null;
@@ -1635,8 +2024,8 @@ namespace BaiduPCS
                 {
                     while (1 == m_status)
                     {
-                        System.Windows.Forms.Application.DoEvents();
-                        System.Threading.Thread.Sleep(10);
+                        Application.DoEvents();
+                        Thread.Sleep(10);
                     }
                 }
                 else if (2 == m_status)
@@ -1649,17 +2038,17 @@ namespace BaiduPCS
                     fs = File.OpenRead(kv.Key);
                     if (fs.Length < RAPIDUPLOAD_THRESHOLD)
                     {
-                        ret = NormalUpload(fs, kv.Key, kv.Value, ref pi);
+                        ret = NormalUpload(fs, kv.Key, kv.Value);
                     }
                     else
                     {
                         ret = RapidUpload(fs, kv.Value);
                         if (!ret)
                         {
-                            ret = NormalUpload(fs, kv.Key, kv.Value, ref pi);
+                            ret = NormalUpload(fs, kv.Key, kv.Value);
                         }
 
-                        pi.current_size += fs.Length;
+                        m_pi.current_size += fs.Length;
                     }
 
                     if (!ret)
@@ -1667,14 +2056,14 @@ namespace BaiduPCS
                         Log(src_path + " 上传失败！");
                     }
 
-                    ReportProgress(pi);
+                    ReportProgress(m_pi);
                 }
                 catch (Exception ex)
                 {
                     m_last_error = ex.ToString();
                 }
 
-                pi.current_files++;
+                m_pi.current_files++;
                 if (null != fs)
                 {
                     fs.Close();

@@ -80,9 +80,9 @@
             this.btnRemoteDelete = new System.Windows.Forms.ToolStripButton();
             this.btnRemoteMkdir = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnDownload = new System.Windows.Forms.ToolStripButton();
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.cmbRemoteThreads = new System.Windows.Forms.ToolStripComboBox();
+            this.btnDownload = new System.Windows.Forms.ToolStripButton();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -160,7 +160,6 @@
             this.txtPassword.PasswordChar = '*';
             this.txtPassword.Size = new System.Drawing.Size(200, 21);
             this.txtPassword.TabIndex = 3;
-            this.txtPassword.Text = "tzw19860806";
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtPassword.UseSystemPasswordChar = true;
             // 
@@ -188,7 +187,6 @@
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.Size = new System.Drawing.Size(199, 21);
             this.txtUsername.TabIndex = 1;
-            this.txtUsername.Text = "tzwsoho";
             this.txtUsername.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // btnLogout
@@ -538,9 +536,9 @@
             this.btnRemoteDelete,
             this.btnRemoteMkdir,
             this.toolStripSeparator6,
-            this.btnDownload,
             this.toolStripLabel1,
-            this.cmbRemoteThreads});
+            this.cmbRemoteThreads,
+            this.btnDownload});
             this.toolStrip2.Location = new System.Drawing.Point(3, 17);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(410, 25);
@@ -634,17 +632,6 @@
             this.toolStripSeparator6.Name = "toolStripSeparator6";
             this.toolStripSeparator6.Size = new System.Drawing.Size(6, 25);
             // 
-            // btnDownload
-            // 
-            this.btnDownload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnDownload.Image = global::BaiduPCS.Properties.Resources.Download;
-            this.btnDownload.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnDownload.Name = "btnDownload";
-            this.btnDownload.Size = new System.Drawing.Size(23, 22);
-            this.btnDownload.Text = "下载";
-            this.btnDownload.ToolTipText = "下载文件/文件夹到本地";
-            this.btnDownload.Click += new System.EventHandler(this.btnDownload_Click);
-            // 
             // toolStripLabel1
             // 
             this.toolStripLabel1.Name = "toolStripLabel1";
@@ -660,6 +647,17 @@
             "十线程"});
             this.cmbRemoteThreads.Name = "cmbRemoteThreads";
             this.cmbRemoteThreads.Size = new System.Drawing.Size(75, 25);
+            // 
+            // btnDownload
+            // 
+            this.btnDownload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnDownload.Image = global::BaiduPCS.Properties.Resources.Download;
+            this.btnDownload.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnDownload.Name = "btnDownload";
+            this.btnDownload.Size = new System.Drawing.Size(23, 22);
+            this.btnDownload.Text = "下载";
+            this.btnDownload.ToolTipText = "下载文件/文件夹到本地";
+            this.btnDownload.Click += new System.EventHandler(this.btnDownload_Click);
             // 
             // statusStrip1
             // 

@@ -126,6 +126,21 @@ namespace BaiduPCS
             internal long m_ctime;
         }
 
+        [DataContract()]
+        public class BaiduQuotaInfo
+	    {
+		    [DataMember(Name = "errno")]
+            internal int m_errno;
+            [DataMember(Name = "expire")]
+            internal bool m_expire;
+            [DataMember(Name = "free")]
+            internal long m_free;
+            [DataMember(Name = "used")]
+            internal long m_used;
+            [DataMember(Name = "total")]
+            internal long m_total;
+	    }
+
         public class BaiduProgressInfo
         {
             internal bool is_download = false;
@@ -1554,6 +1569,44 @@ namespace BaiduPCS
             bdfi.m_server_filename = GetDirFileName(bdmdi.m_path);
 
             return true;
+        }
+
+        /// <summary>
+        /// 获取网盘配额
+        /// </summary>
+        /// <param name="bdqi">配额信息</param>
+        /// <returns></returns>
+        public bool Quota(ref BaiduQuotaInfo bdqi)
+        {
+            try
+            {
+                const string QUOTA_URL = "http://pan.baidu.com/api/quota?checkexpire=1&checkfree=1&channel=chunlei&web=1&app_id=250528&clienttype=0" +
+                    "&bdstoken={0}" +
+                    "&logid={1}";
+                string url = string.Format(QUOTA_URL, m_bdstoken, GetUSTimeStamp());
+
+                byte[] html = null;
+                bool ret = HttpGet(url, ref html);
+                if (!ret)
+                {
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                bdqi = DecodeJson<BaiduQuotaInfo>(str_html);
+                if (null == bdqi)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
+
         }
 
         #endregion

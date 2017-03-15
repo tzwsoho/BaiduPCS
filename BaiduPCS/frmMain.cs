@@ -181,6 +181,21 @@ namespace BaiduPCS
                 btnRemoteRefresh_Click(null, null);
                 Application.DoEvents();
 
+                BaiduPCSUtil.BaiduQuotaInfo bdqi = null;
+                if (m_baidu.Quota(ref bdqi))
+                {
+                    lblStatus.Text =
+                        "是否已到期：" + bdqi.m_expire +
+                        "，剩余空间：" + FormatCapability(bdqi.m_free) +
+                        "，已用空间：" + FormatCapability(bdqi.m_used) +
+                        "，总容量：" + FormatCapability(bdqi.m_total);
+                }
+                else
+                {
+                    MessageBox.Show("获取配额情况失败！");
+                    return;
+                }
+
                 MessageBox.Show("登录成功！");
             }
             else if ("需要校验码" == m_baidu.LastErrorStr)

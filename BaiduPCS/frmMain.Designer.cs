@@ -152,6 +152,7 @@
             this.txtCaptcha.Size = new System.Drawing.Size(100, 21);
             this.txtCaptcha.TabIndex = 5;
             this.txtCaptcha.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txtCaptcha.Validated += new System.EventHandler(this.txtCaptcha_Validated);
             // 
             // txtPassword
             // 
@@ -162,6 +163,7 @@
             this.txtPassword.TabIndex = 3;
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtPassword.UseSystemPasswordChar = true;
+            this.txtPassword.Enter += new System.EventHandler(this.txtPassword_Enter);
             // 
             // label2
             // 
@@ -197,7 +199,7 @@
             this.btnLogout.Location = new System.Drawing.Point(764, 40);
             this.btnLogout.Name = "btnLogout";
             this.btnLogout.Size = new System.Drawing.Size(75, 23);
-            this.btnLogout.TabIndex = 7;
+            this.btnLogout.TabIndex = 2;
             this.btnLogout.Text = "登出";
             this.btnLogout.UseVisualStyleBackColor = true;
             this.btnLogout.Click += new System.EventHandler(this.btnLogout_Click);
@@ -209,7 +211,7 @@
             this.btnLogin.Location = new System.Drawing.Point(764, 11);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Size = new System.Drawing.Size(75, 23);
-            this.btnLogin.TabIndex = 6;
+            this.btnLogin.TabIndex = 1;
             this.btnLogin.Text = "登录";
             this.btnLogin.UseVisualStyleBackColor = true;
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
@@ -316,7 +318,7 @@
             this.lvwLocal.ShowItemToolTips = true;
             this.lvwLocal.Size = new System.Drawing.Size(404, 304);
             this.lvwLocal.SmallImageList = this.imgIcon;
-            this.lvwLocal.TabIndex = 0;
+            this.lvwLocal.TabIndex = 1;
             this.lvwLocal.UseCompatibleStateImageBehavior = false;
             this.lvwLocal.View = System.Windows.Forms.View.Details;
             this.lvwLocal.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.lvwLocal_AfterLabelEdit);
@@ -365,7 +367,7 @@
             this.toolStrip1.Location = new System.Drawing.Point(3, 17);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(404, 25);
-            this.toolStrip1.TabIndex = 1;
+            this.toolStrip1.TabIndex = 0;
             // 
             // btnLocalRefresh
             // 
@@ -494,7 +496,7 @@
             this.lvwRemote.ShowItemToolTips = true;
             this.lvwRemote.Size = new System.Drawing.Size(410, 304);
             this.lvwRemote.SmallImageList = this.imgIcon;
-            this.lvwRemote.TabIndex = 0;
+            this.lvwRemote.TabIndex = 1;
             this.lvwRemote.UseCompatibleStateImageBehavior = false;
             this.lvwRemote.View = System.Windows.Forms.View.Details;
             this.lvwRemote.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.lvwRemote_AfterLabelEdit);
@@ -542,7 +544,7 @@
             this.toolStrip2.Location = new System.Drawing.Point(3, 17);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(410, 25);
-            this.toolStrip2.TabIndex = 2;
+            this.toolStrip2.TabIndex = 0;
             // 
             // btnRemoteRefresh
             // 

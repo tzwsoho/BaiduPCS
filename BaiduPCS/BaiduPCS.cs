@@ -29,13 +29,12 @@ namespace BaiduPCS
         const long SLICE_PER_THREAD = 1024 * 1024;
         const long RAPIDUPLOAD_THRESHOLD = 256 * 1024;
 
-        const string BAIDU_HOME = "http://www.baidu.com";
+        const string BAIDU_HOME = "http://pan.baidu.com";
         const string BAIDU_DISK_HOME = "http://pan.baidu.com/disk/home";
         const string BAIDU_LOGIN = "https://passport.baidu.com/v2/api/?login";
         const string BAIDU_STATIC_PAGE = "http://pan.baidu.com/res/static/thirdparty/pass_v3_jump.html";
         const string BAIDU_PASSPORT_LOGOUT = "https://passport.baidu.com/?logout&u=http%3a%2f%2fpan.baidu.com";
         const string BAIDU_CAPTCHA = "https://passport.baidu.com/cgi-bin/genimage?";
-        const string BAIDU_PAN_API = "http://pan.baidu.com/api/";
         const string BAIDU_PCS_REST = "http://c.pcs.baidu.com/rest/2.0/pcs/file";
         //const string USER_AGENT = "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36";
         const string USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.154 Safari/537.36 LBBROWSER";
@@ -142,8 +141,6 @@ namespace BaiduPCS
         }
 
         private CookieContainer m_req_cc = null;
-        public CookieContainer cc { get { return m_req_cc; } set { m_req_cc = value; } }
-
         private CookieCollection m_res_cc = null;
 
         public delegate void OnNewLogDelegate(string new_log);
@@ -162,10 +159,13 @@ namespace BaiduPCS
             set { m_on_report_prog = value; }
         }
 
-        private HttpStatusCode m_http_code = HttpStatusCode.OK;
-        public HttpStatusCode HttpCode
+        private string m_last_location = "";
+        private HttpStatusCode m_last_http_code = HttpStatusCode.OK;
+
+        private int m_last_err_no = 0;
+        public int LastErrorNo
         {
-            get { return m_http_code; }
+            get { return m_last_err_no; }
         }
 
         private string m_last_error = "";
@@ -211,6 +211,21 @@ namespace BaiduPCS
         {
             return Math.Floor((DateTime.Now - BASE_TIME).TotalMilliseconds).ToString();
             //return ((long)(DateTime.Now - BASE_TIME).TotalSeconds * 1000 & 0x7FFFFFFF).ToString();
+        }
+
+        static public string GetUSTimeStamp()
+        {
+            string str_time_stamp = ((DateTime.Now - BASE_TIME).Ticks / (double)TimeSpan.TicksPerMillisecond * 10).ToString("F1") +
+                new Random().Next(99999999).ToString("D8") +
+                new Random().Next(99999999).ToString("D8");
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(str_time_stamp));
+        }
+
+        static public string GetDV()
+        {
+            //return "";
+            //return "MDEwAAoAAgAKAa0AFQAAAF00AA0CAB3Ly_Wyqv6_8bbkpei36Ljru-TQj9Cl1rPBj-6D5g0CAAXLy_NpaQkCACTT1_b3wMDAwMD4f38raiRjMXA9Yj1tPm4xBVoFcANmFFo7VjMIAgAe3tqvrqqqqpwrfz5wN2UkaTZpOWo6ZVEOUTRGNFspBwIABMvLy8sIAgAJy8_g4cDAwPRsBwIABMvLy8sTAgAZy97e3rbCtsb80_yM7YOtz67Ho9b4m_SZthACAAHLFgIAIuqe9cXr0-Tc79jg1eXW59Hk1OPX4dDk3OXW4dXg2eDX4dQBAgAGy8nJx1DiBQIABMvLy8EVAgAIy8vKkFXxK14EAgAGycnLyv_OFwIAEcrLMjI-X21FYlIqHH9YcSx3BgIAKMvLy4eHh4eHh4eCFhYWFYGBgYQkJCQno6OjpgYGBgVjY2Nm1tbW1aMJAgAUy89eXr29vb29iGBhZRISxcWFhZANAgAFy8v-CAgHAgAEy8vLyw0CAB3Ly_NTSx9eEFcFRAlWCVkKWgUxbjFEN1Igbg9iBw0CAB3Ly_XD24_OgMeV1JnGmcmaypWh_qHUp8Kw_p_ylw";
+            return "MDEwAAoAJQAKAaIAFgAAAF00AA0CAB3Ly_aDm8-OwIfVlNmG2YnaitXhvuGU54Lwvt-y1w0CAB3Ly_O2rvq79bLgoeyz7Lzvv-DUi9Sh0rfFi-qH4g0CAAXLy_PMzAcCAATLy8vLDQIABcvL_nh4CQIAFMvPYGCFhYWFhbDHxsK1tWJiIiI3CAIACcvPdXRWVlZiXQgCAAnLybe3a2trWf4HAgAEy8vLywYCACjLy8uHh4eHh4eHghYWFhWBgYGEJCQkJ6Ojo6YGBgYFY2NjZtbW1tWjFgIAI-md9sbo2-7c69ri0-bX59Dj0ObR49Dh1e3U59Dl1-Td6N7mAQIABsvJycdQ4gUCAATLy8vBFQIACMvLypBV-2bJBAIABsnJy8r_zhcCAA3JycfHz72d_MGaqtLiEAIAAcsTAgAZy97e3rbCtsb80_yM7YOtz67Ho9b4m_SZtgcCAATLy8vLCAIACcvPbm6SkpKkygkCACTT14GAt7e3t7ePo6P3tvi_7azhvuGx4rLt2YbZrN-6yIbniu8NAgAdy8v2c2s_fjB3JWQpdil5KnolEU4RZBdyAE4vQic";
         }
 
         static public string GetCallback()
@@ -530,6 +545,32 @@ namespace BaiduPCS
             }
         }
 
+        private string GetRSAEncrypt(string public_key, string src_data)
+        {
+            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
+            {
+                using (SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider())
+                {
+                    string str_pubkey = GetStringIn(
+                        public_key.Replace("\n", ""),
+                        "-*BEGIN PUBLIC KEY-*",
+                        "-*END PUBLIC KEY-*").Trim("-".ToCharArray());
+
+                    RSAParameters rsa_params = new RSAParameters();
+                    if (!DecodeRSAPublicKey(Convert.FromBase64String(str_pubkey), ref rsa_params))
+                    {
+                        Log("解析 RSA 公钥失败！");
+                        return "";
+                    }
+
+                    rsa.PersistKeyInCsp = false;
+                    rsa.ImportParameters(rsa_params);
+                    byte[] bytes_out = rsa.Encrypt(Encoding.UTF8.GetBytes(src_data), false);
+                    return Convert.ToBase64String(bytes_out);
+                }
+            }
+        }
+
         private string MD5File(FileStream fs, long offset = 0, long length = 0)
         {
             const int SLICE_SIZE = 16 * 1024;
@@ -587,12 +628,25 @@ namespace BaiduPCS
             }
 
             str_ret = str_ret.TrimEnd("&".ToCharArray());
-            Log("params = " + str_ret);
+            //Log("params = " + str_ret);
 
             return Encoding.UTF8.GetBytes(str_ret);
         }
 
-        private bool HttpGet(string url, ref byte[] html)
+        private string BuildUrl(string target_url, NameValueCollection nvc, bool need_url_encode = true)
+        {
+            string str_url = "";
+            foreach (string key in nvc.AllKeys)
+            {
+                str_url += key + "=" + (need_url_encode ? HttpUtility.UrlEncode(nvc[key]) : nvc[key]);
+                str_url += "&";
+            }
+
+            str_url = str_url.TrimEnd("&".ToCharArray());
+            return target_url + "&" + str_url;
+        }
+
+        private bool HttpGet(string url, ref byte[] html, bool auto_redirect = true)
         {
             try
             {
@@ -601,14 +655,27 @@ namespace BaiduPCS
                 req.Timeout = 20000;
                 req.UserAgent = USER_AGENT;
                 req.CookieContainer = m_req_cc;
+                req.AllowAutoRedirect = auto_redirect;
                 req.Method = WebRequestMethods.Http.Get;
-                req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
 
                 //Log("GET " + url);
 
                 HttpWebResponse res = (HttpWebResponse)req.GetResponse();
-                m_http_code = res.StatusCode;
+                m_last_http_code = res.StatusCode;
                 m_res_cc.Add(res.Cookies);
+
+                if (HttpStatusCode.Redirect == res.StatusCode ||
+                    HttpStatusCode.MovedPermanently == res.StatusCode)
+                {
+                    m_last_location = res.Headers[HttpResponseHeader.Location];
+                    if (!Uri.IsWellFormedUriString(m_last_location, UriKind.Absolute))
+                    {
+                        Uri u = new Uri(url);
+                        m_last_location = u.Scheme + "://" + u.Host + m_last_location;
+                    }
+
+                    return HttpGet(m_last_location, ref html, auto_redirect);
+                }
 
                 BinaryReader br = new BinaryReader(res.GetResponseStream());
                 html = new byte[NET_READ_BUF_SIZE * 2];
@@ -649,7 +716,7 @@ namespace BaiduPCS
                 req.UserAgent = USER_AGENT;
                 req.CookieContainer = m_req_cc;
                 req.Method = WebRequestMethods.Http.Post;
-                req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
+                //req.CachePolicy = new RequestCachePolicy(RequestCacheLevel.CacheIfAvailable);
                 req.ContentLength = post_data.Length;
                 req.ContentType = "application/x-www-form-urlencoded";
 
@@ -658,8 +725,21 @@ namespace BaiduPCS
                 //Log("POST " + post_data.Length + " 字节数据至 " + url);
 
                 HttpWebResponse res = (HttpWebResponse)req.GetResponse();
-                m_http_code = res.StatusCode;
+                m_last_http_code = res.StatusCode;
                 m_res_cc.Add(res.Cookies);
+
+                if (HttpStatusCode.Redirect == res.StatusCode ||
+                    HttpStatusCode.MovedPermanently == res.StatusCode)
+                {
+                    m_last_location = res.Headers[HttpResponseHeader.Location];
+                    if (!Uri.IsWellFormedUriString(m_last_location, UriKind.Absolute))
+                    {
+                        Uri u = new Uri(url);
+                        m_last_location = u.Scheme + "://" + u.Host + m_last_location;
+                    }
+
+                    return HttpGet(m_last_location, ref html);
+                }
 
                 BinaryReader br = new BinaryReader(res.GetResponseStream());
                 html = new byte[NET_READ_BUF_SIZE * 2];
@@ -695,9 +775,11 @@ namespace BaiduPCS
         #region 登录
 
         private string m_code_string = "";
+        private string m_vcode_type = "";
+        private string m_gid = "";
         private string m_token = "";
         private string m_rsa_key = "";
-        private string m_enc_password = "";
+        private string m_public_key = "";
         private string m_bdstoken = "";
         private string m_bduss = "";
 
@@ -707,164 +789,218 @@ namespace BaiduPCS
             get { return m_sysuid; }
         }
 
-        private int PreLogin(string username, string password)
-        {
-            byte[] html = null;
-
-            Log("访问百度网盘主页，获取 Cookies");
-            bool ret = HttpGet(BAIDU_DISK_HOME, ref html);
-            if (!ret)
-            {
-                return 1;
-            }
-
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            int retry_token_times = 0;
-            Log("登录第一步，获取 token");
-
-retry_token:
-            const string LOGIN_STEP1_URL = "https://passport.baidu.com/v2/api/?getapi&tpl=netdisk&subpro=netdisk_web&apiver=v3&class=login&logintype=basicLogin" +
-                "&tt={0}" +
-                "&gid={1}" +
-                "&callback={2}";
-            string url = string.Format(LOGIN_STEP1_URL, GetTimeStamp(), GetGid(), GetCallback());
-
-            ret = HttpGet(url, ref html);
-            if (!ret || null == html)
-            {
-                return 2;
-            }
-
-            string str_html = Encoding.UTF8.GetString(html);
-            string str_step1 = str_html.EndsWith(")") ? GetStringIn(str_html, "\\(", "\\)") : str_html;
-            if ("" == str_step1)
-            {
-                return 3;
-            }
-
-            object err_no = GetJsonValue(str_step1, "errInfo.no");
-            if (null != err_no &&
-                "0" != err_no.ToString())
-            {
-                m_last_error = "错误码：" + err_no.ToString();
-                Log("获取 token 错误：" + err_no.ToString());
-                return 4;
-            }
-
-            object token = GetJsonValue(str_step1, "data.token");
-            if (null == token ||
-                !(token is string))
-            {
-                return 5;
-            }
-
-            Log("token = " + token.ToString());
-            Regex reg_token = new Regex("[0-9a-fA-F]{32}");
-            if (!reg_token.IsMatch(token.ToString()))
-            {
-                retry_token_times++;
-                if (retry_token_times > 3)
-                {
-                    Log("重复获取 token 失败！");
-                    return 6;
-                }
-
-                goto retry_token;
-            }
-
-            m_token = token.ToString();
-
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            Log("登录第二步，获取公钥证书和 RSA 密钥");
-            const string LOGIN_STEP2_URL = "https://passport.baidu.com/v2/getpublickey?tpl=netdisk&subpro=netdisk_web&apiver=v3" +
-                "&token={0}" +
-                "&tt={1}" +
-                "&gid={2}" +
-                "&callback={3}";
-            url = string.Format(LOGIN_STEP2_URL, m_token, GetTimeStamp(), GetGid(), GetCallback());
-            ret = HttpGet(url, ref html);
-            if (!ret || null == html)
-            {
-                return 7;
-            }
-
-            str_html = Encoding.UTF8.GetString(html);
-            string str_step2 = GetStringIn(str_html, "\\(", "\\)");
-            if ("" == str_step2)
-            {
-                return 8;
-            }
-
-            err_no = GetJsonValue(str_step2, "errno");
-            object err_msg = GetJsonValue(str_step2, "msg");
-            if (null != err_no ||
-                null != err_msg)
-            {
-                if ("0" != err_no.ToString())
-                {
-                    Log("获取公钥失败：errno = " + err_no + ", msg = " + err_msg);
-                    return 9;
-                }
-            }
-
-            object public_key = GetJsonValue(str_step2, "pubkey");
-            object rsa_key = GetJsonValue(str_step2, "key");
-            if (null == public_key ||
-                null == rsa_key)
-            {
-                Log("公钥或 RSA 密钥为空：pubkey = " + public_key + ", key = " + rsa_key);
-                return 10;
-            }
-
-            m_rsa_key = rsa_key.ToString();
-
-            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
-            {
-                using (SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider())
-                {
-                    string str_pubkey = GetStringIn(
-                        public_key.ToString().Replace("\n", ""),
-                        "-*BEGIN PUBLIC KEY-*",
-                        "-*END PUBLIC KEY-*").Trim("-".ToCharArray());
-
-                    RSAParameters rsa_params = new RSAParameters();
-                    if (!DecodeRSAPublicKey(Convert.FromBase64String(str_pubkey), ref rsa_params))
-                    {
-                        Log("解析 RSA 公钥失败！");
-                        return 11;
-                    }
-
-                    rsa.PersistKeyInCsp = false;
-                    rsa.ImportParameters(rsa_params);
-                    byte[] bytes_out = rsa.Encrypt(Encoding.UTF8.GetBytes(password), false);
-                    m_enc_password = Convert.ToBase64String(bytes_out);
-                }
-            }
-
-            return 0;
-        }
-
-        private int DoLogin(string username, string captcha)
+        public bool InitLogin()
         {
             try
             {
+                byte[] html = null;
+
+                Log("访问百度网盘主页，获取 Cookies");
+                bool ret = HttpGet(BAIDU_HOME, ref html);
+                if (!ret)
+                {
+                    return false;
+                }
+
+                m_gid = GetGid();
+                int retry_token_times = 1;
+
+            retry_token:
+
+                Log("第 " + retry_token_times + " 次尝试获取 token...");
+
+                const string TOKEN_URL = "https://passport.baidu.com/v2/api/?getapi&tpl=netdisk&subpro=netdisk_web&apiver=v3&class=login&logintype=basicLogin" +
+                    "&tt={0}" +
+                    "&gid={1}" +
+                    "&callback={2}";
+
+                string url = string.Format(TOKEN_URL, GetTimeStamp(), m_gid, GetCallback());
+                ret = HttpGet(url, ref html);
+                if (!ret)
+                {
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                string str_json = str_html.EndsWith(")") ? GetStringIn(str_html, "\\(", "\\)") : str_html;
+                if ("" == str_json)
+                {
+                    return false;
+                }
+
+                JavaScriptSerializer jss = new JavaScriptSerializer();
+                dynamic ret_obj = jss.DeserializeObject(str_json);
+                string str_err_no = ret_obj["errInfo"]["no"];
+                if ("0" != str_err_no)
+                {
+                    m_last_err_no = int.Parse(str_err_no);
+                    Log("获取 token 错误：" + ret_obj.errInfo.no);
+                    return false;
+                }
+
+                string token = ret_obj["data"]["token"];
+                Log("token = " + token.ToString());
+
+                Regex reg_token = new Regex("[0-9a-fA-F]{32}");
+                if (!reg_token.IsMatch(token))
+                {
+                    if (retry_token_times > 3)
+                    {
+                        Log("重复获取 token 失败！");
+                        return false;
+                    }
+
+                    retry_token_times++;
+                    goto retry_token;
+                }
+
+                m_token = token;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
+        }
+
+        public bool GetPublicKey()
+        {
+            try
+            {
+                Log("获取公钥证书和 RSA 密钥");
+                const string PUBLIC_KEY_URL = "https://passport.baidu.com/v2/getpublickey?tpl=netdisk&subpro=netdisk_web&apiver=v3" +
+                    "&token={0}" +
+                    "&tt={1}" +
+                    "&gid={2}" +
+                    "&callback={3}";
+                string url = string.Format(PUBLIC_KEY_URL, m_token, GetTimeStamp(), m_gid, GetCallback());
+
+                byte[] html = null;
+                bool ret = HttpGet(url, ref html);
+                if (!ret || null == html)
+                {
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                string str_json = GetStringIn(str_html, "\\(", "\\)");
+                if ("" == str_json)
+                {
+                    return false;
+                }
+
+                JavaScriptSerializer jss = new JavaScriptSerializer();
+                dynamic ret_obj = jss.DeserializeObject(str_json);
+                string str_err_no = ret_obj["errno"];
+                if ("0" != str_err_no)
+                {
+                    m_last_err_no = int.Parse(str_err_no);
+                    Log("获取公钥失败：errno = " + str_err_no + ", msg = " + ret_obj["msg"]);
+                    return false;
+                }
+
+                m_rsa_key = ret_obj["key"];
+                m_public_key = ret_obj["pubkey"];
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
+        }
+
+        private bool LoginCheck(string username, string password)
+        {
+            try
+            {
+                Log("检查登录状态");
+                const string LOGIN_CHECK_URL = "https://passport.baidu.com/v2/api/?logincheck&tpl=netdisk&subpro=netdisk_web&apiver=v3&sub_source=leadsetpwd&isphone=false" +
+                    "&token={0}" +
+                    "&tt={1}" +
+                    "&username={2}" +
+                    "&dv={3}" +
+                    "&callback={4}";
+                string url = string.Format(LOGIN_CHECK_URL, m_token, GetTimeStamp(), username, GetDV(), GetCallback());
+
+                byte[] html = null;
+                bool ret = HttpGet(url, ref html);
+                if (!ret)
+                {
+                    return false;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                string str_json = GetStringIn(str_html, "\\(", "\\)");
+                if ("" == str_json)
+                {
+                    return false;
+                }
+
+                JavaScriptSerializer jss = new JavaScriptSerializer();
+                dynamic ret_obj = jss.DeserializeObject(str_json);
+                string str_err_no = ret_obj["errInfo"]["no"];
+                if ("0" != str_err_no)
+                {
+                    m_last_err_no = int.Parse(str_err_no);
+                    Log("检查登录状态失败：" + str_err_no);
+                    return false;
+                }
+
+                m_code_string = ret_obj["data"]["codeString"];
+                m_vcode_type = ret_obj["data"]["vcodetype"];
+                if ("" != m_code_string &&
+                    "" != m_vcode_type)
+                {
+                    m_last_error = "需要校验码";
+                    Log("需要校验码：codeString = " + m_code_string + ", vcode_tyep = " + m_vcode_type);
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
+        }
+
+        private bool DoLogin(string username, string password, string captcha)
+        {
+            try
+            {
+                if ("" == m_public_key ||
+                    password.Length < 6)
+                {
+                    return false;
+                }
+
+                string enc_password = GetRSAEncrypt(m_public_key, password);
+                if ("" == enc_password)
+                {
+                    return false;
+                }
+
                 NameValueCollection nvc = new NameValueCollection();
                 nvc.Add("apiver", "v3");
+                nvc.Add("callback", GetCallback());
                 nvc.Add("charset", "utf-8");
+                nvc.Add("codestring", m_code_string);
                 nvc.Add("countrycode", "");
                 nvc.Add("crypttype", "12");
                 nvc.Add("detect", "1");
+                nvc.Add("dv", GetDV());
                 nvc.Add("foreignusername", "");
-                nvc.Add("gid", GetGid());
+                nvc.Add("gid", m_gid);
                 nvc.Add("idc", "");
                 nvc.Add("isPhone", "");
                 nvc.Add("logLoginType", "pc_loginBasic");
                 nvc.Add("loginmerge", "true");
                 nvc.Add("logintype", "basicLogin");
                 nvc.Add("mem_pass", "on");
-                nvc.Add("password", m_enc_password);
+                nvc.Add("password", enc_password);
                 nvc.Add("ppui_logintime", new Random().Next(3000, 10000).ToString());
                 nvc.Add("quick_user", "0");
                 nvc.Add("rsakey", m_rsa_key);
@@ -877,56 +1013,50 @@ retry_token:
                 nvc.Add("u", BAIDU_DISK_HOME);
                 nvc.Add("username", username);
                 nvc.Add("verifycode", captcha);
-                byte[] post_data = BuildKeyValueParams(nvc);
 
                 byte[] html = null;
+                byte[] post_data = BuildKeyValueParams(nvc);
                 bool ret = HttpPost(BAIDU_LOGIN, ref html, post_data);
-                if (!ret || null == html)
+                if (!ret)
                 {
-                    return 20;
+                    return false;
                 }
 
                 string str_html = Encoding.UTF8.GetString(html);
-                string str_href = GetStringIn(str_html, "href\\s+\\+\\=\\s+\"", "\"\\+accounts;");
+                string str_href = GetStringIn(str_html, "href\\s*\\+\\=\\s*\"", "\"\\+accounts;");
+                NameValueCollection nvc_href = HttpUtility.ParseQueryString(str_href);
+                Log("href = " + str_href);
+
+                int err_no = 0;
                 string str_err_no = GetStringIn(str_href, "err_no\\=", "&", "\\d+");
-                if ("0" != str_err_no)
+                if (!int.TryParse(str_err_no, out err_no))
                 {
-                    Log("登录返回错误码：" + str_err_no);
-                    return 21;
+                    return false;
                 }
 
+                m_last_err_no = err_no;
+
                 string str_jump_url = GetStringIn(str_html, "decodeURIComponent\\(\"", "\"\\)\\+\"\\?\"");
-                string str_account = GetStringIn(str_html, "var\\s+accounts\\s+\\= '", "'\n\n");
+                string str_account = GetStringIn(str_html, "var\\s+accounts\\s*\\= '", "'\n\n");
                 str_jump_url = str_jump_url.Replace("\\", "") + "?" + str_href + str_account;
-                NameValueCollection nvc_href = HttpUtility.ParseQueryString(str_href);
                 Log("jump_url = " + str_jump_url);
-                Log("href = " + str_href);
 
                 ret = HttpGet(str_jump_url, ref html);
                 if (!ret)
                 {
-                    return 22;
+                    return false;
                 }
 
-                string str_json = GetStringIn(str_html, "\\(", "\\)");
-                if ("" == str_json)
+                string str_code_string = GetStringIn(str_href, "codeString\\=", "&", "[^&]+");
+                string str_vcode_type = GetStringIn(str_href, "vcodetype\\=", "&", "[^&]+");
+                if ("" != str_code_string &&
+                    "" != str_vcode_type)
                 {
-                    return 23;
-                }
-
-                dynamic ret_obj = new JavaScriptSerializer().DeserializeObject(str_json);
-                int err_no = ret_obj.err_no;
-                if (0 != err_no)
-                {
-                    Log("登录返回错误码：" + err_no);
-                    return 24;
-                }
-
-                if ("" != ret_obj.codeString) // 需要验证码
-                {
-                    m_code_string = ret_obj.codeString;
-                    Log("codeString = " + m_code_string);
-                    return 100;
+                    m_code_string = str_code_string;
+                    m_vcode_type = str_vcode_type;
+                    m_last_error = "需要校验码";
+                    Log("需要校验码：codeString = " + str_code_string + ", vcode_type = " + str_vcode_type);
+                    return false;
                 }
 
                 switch (err_no)
@@ -939,58 +1069,61 @@ retry_token:
                     case 400037:
                     case 400401:
                         {
-                            if (IsLogin())
+                            ret = HttpGet(BAIDU_DISK_HOME, ref html);
+                            if (!ret)
                             {
-                                return 0;
+                                return ret;
                             }
-                        }
-                        break;
 
-                    // 需要验证码
+                            str_html = Encoding.UTF8.GetString(html);
+                            string str_context = GetStringIn(str_html, "var\\s+context\\s*\\=\\s*", ";[\r]?\n");
+                            if ("" == str_context) return false;
+
+                            JavaScriptSerializer jss = new JavaScriptSerializer();
+                            dynamic ret_obj = jss.DeserializeObject(str_context);
+                            m_bdstoken = ret_obj["bdstoken"];
+                            m_sysuid = ret_obj["username"];
+                            m_bduss = m_res_cc["BDUSS"].Value;
+                        }
+                        return true;
+
+                    // 需要校验码
                     case 3:
                     case 6:
                     case 257:
                     case 200010:
-                        {
-                            if (null != nvc_href.Get("codeString"))
-                            {
-                                m_code_string = nvc_href["codeString"];
-                                Log("codeString = " + nvc_href["codeString"]);
-                            }
-                        }
-                        return 25;
+                        m_last_error = "需要校验码";
+                        return false;
 
-                    // 需要跳转
-                    case 120019:
-                    case 120021:
-                        {
-                            string authtoken = "", gotourl = "";
-                            if (null != nvc_href.Get("authtoken"))
-                            {
-                                authtoken = nvc_href["authtoken"];
-                                Log("authtoken = " + authtoken);
-                            }
+                    //// 需要跳转
+                    //case 120019:
+                    //case 120021:
+                    //    {
+                    //        string authtoken = "", gotourl = "";
+                    //        if (null != nvc_href.Get("authtoken"))
+                    //        {
+                    //            authtoken = nvc_href["authtoken"];
+                    //            Log("authtoken = " + authtoken);
+                    //        }
 
-                            if (null != nvc_href.Get("gotourl"))
-                            {
-                                gotourl = nvc_href["gotourl"];
-                                Log("gotourl = " + gotourl);
-                            }
+                    //        if (null != nvc_href.Get("gotourl"))
+                    //        {
+                    //            gotourl = nvc_href["gotourl"];
+                    //            Log("gotourl = " + gotourl);
+                    //        }
 
-                            // TODO
-                        }
-                        return 26;
+                    //        // TODO
+                    //    }
+                    //    return false;
 
                     default:
-                        return 27;
+                        return false;
                 }
-
-                return 0;
             }
             catch (Exception ex)
             {
                 m_last_error = ex.ToString();
-                return 99;
+                return false;
             }
         }
 
@@ -1001,26 +1134,20 @@ retry_token:
         /// <param name="password">密码</param>
         /// <param name="captcha">验证码</param>
         /// <returns></returns>
-        public int Login(string username, string password, string captcha = "")
+        public bool Login(string username, string password, string captcha = "")
         {
-            int ret = 0;
+            bool ret = false;
             if ("" == captcha &&
-                "" == m_code_string)
+                "" == m_vcode_type)
             {
-                ret = PreLogin(username, password);
-                if (0 != ret)
+                ret = LoginCheck(username, password);
+                if (!ret)
                 {
                     return ret;
                 }
             }
 
-            ret = DoLogin(username, captcha);
-            if (0 != ret)
-            {
-                return ret;
-            }
-
-            return 0;
+            return DoLogin(username, password, captcha);
         }
 
         /// <summary>
@@ -1030,8 +1157,8 @@ retry_token:
         public bool IsLogin()
         {
             byte[] html = null;
-            bool ret = HttpGet(BAIDU_DISK_HOME, ref html);
-            if (!ret || HttpStatusCode.OK != m_http_code)
+            bool ret = HttpGet(BAIDU_DISK_HOME, ref html, false);
+            if (!ret)
             {
                 return false;
             }
@@ -1051,37 +1178,31 @@ retry_token:
                 return false;
             }
 
-            string str_html = Encoding.UTF8.GetString(html);
-            m_bdstoken = GetStringIn(str_html, "yunData.MYBDSTOKEN\\s*\\=\\s*\"", "\"");
-            if ("" == m_bdstoken)
-            {
-                m_bdstoken = GetStringIn(str_html, "FileUtils.bdstoken\\s*\\=\\s*\"", "\"");
-            }
+            //string str_html = Encoding.UTF8.GetString(html);
+            //m_bdstoken = GetStringIn(str_html, "yunData.MYBDSTOKEN\\s*\\=\\s*\"", "\"");
+            //if ("" == m_bdstoken)
+            //{
+            //    m_bdstoken = GetStringIn(str_html, "FileUtils.bdstoken\\s*\\=\\s*\"", "\"");
+            //}
 
-            if ("" == m_bdstoken)
-            {
-                string str_context = GetStringIn(str_html, "var\\s+context\\s*\\=\\s*", ";[\r]?\n");
-                object bdstoken = GetJsonValue(str_context, "bdstoken");
-                object sysuid = GetJsonValue(str_context, "username");
-                if (null == bdstoken ||
-                    null == sysuid ||
-                    !(bdstoken is string) ||
-                    !(sysuid is string))
-                {
-                    return false;
-                }
+            //if ("" == m_bdstoken)
+            //{
+            //    JavaScriptSerializer jss = new JavaScriptSerializer();
+            //    string str_context = GetStringIn(str_html, "var\\s+context\\s*\\=\\s*", ";[\r]?\n");
+            //    if ("" == str_context) return true;
 
-                m_bdstoken = bdstoken.ToString();
-                m_sysuid = sysuid.ToString();
-            }
-            else
-            {
-                m_sysuid = GetStringIn(str_html, "yunData.MYNAME\\s*\\=\\s*\"", "\"");
-                if ("" == m_sysuid)
-                {
-                    m_sysuid = GetStringIn(str_html, "FileUtils.sysUID\\s*\\=\\s*\"", "\"");
-                }
-            }
+            //    dynamic ret_obj = jss.DeserializeObject(str_context);
+            //    m_bdstoken = ret_obj["bdstoken"];
+            //    m_sysuid = ret_obj["username"];
+            //}
+            //else
+            //{
+            //    m_sysuid = GetStringIn(str_html, "yunData.MYNAME\\s*\\=\\s*\"", "\"");
+            //    if ("" == m_sysuid)
+            //    {
+            //        m_sysuid = GetStringIn(str_html, "FileUtils.sysUID\\s*\\=\\s*\"", "\"");
+            //    }
+            //}
 
             //Log("bdstoken = " + m_bdstoken);
             //Log("sysUID = " + m_sysuid);
@@ -1094,13 +1215,13 @@ retry_token:
         /// <returns></returns>
         public bool Logout()
         {
-            if (!IsLogin())
-            {
-                return false;
-            }
+            //if (!IsLogin())
+            //{
+            //    return false;
+            //}
 
             byte[] html = null;
-            return HttpGet(BAIDU_PASSPORT_LOGOUT, ref html);
+            return HttpGet(BAIDU_PASSPORT_LOGOUT, ref html, false);
         }
 
         /// <summary>
@@ -1109,18 +1230,57 @@ retry_token:
         /// <returns></returns>
         public Bitmap GetCaptcha()
         {
-            byte[] html = null;
-            bool ret = HttpGet(BAIDU_CAPTCHA + m_code_string, ref html);
-            if (!ret)
+            try
             {
+                if ("" == m_vcode_type) return null;
+
+                const string REG_GET_CODE_STR_URL = "https://passport.baidu.com/v2/?reggetcodestr&tpl=netdisk&subpro=netdisk_web&apiver=v3&fr=login" +
+                    "&token={0}" +
+                    "&tt={1}" +
+                    "&vcodetype={2}" +
+                    "&callback={3}";
+                string url = string.Format(REG_GET_CODE_STR_URL, m_token, GetTimeStamp(), m_vcode_type, GetCallback());
+
+                byte[] html = null;
+                bool ret = HttpGet(url, ref html);
+                if (!ret)
+                {
+                    return null;
+                }
+
+                string str_html = Encoding.UTF8.GetString(html);
+                string str_json = str_html.EndsWith(")") ? GetStringIn(str_html, "\\(", "\\)") : str_html;
+                if ("" == str_json)
+                {
+                    return null;
+                }
+
+                JavaScriptSerializer jss = new JavaScriptSerializer();
+                dynamic ret_obj = jss.DeserializeObject(str_json);
+                m_code_string = ret_obj["data"]["verifyStr"];
+
+                const string CAPTCHA_URL = "https://passport.baidu.com/cgi-bin/genimage?{0}";
+                url = string.Format(CAPTCHA_URL, m_code_string);
+
+                ret = HttpGet(url, ref html);
+                if (!ret)
+                {
+                    return null;
+                }
+
+                Bitmap bmp_captcha = null;
+                using (MemoryStream ms = new MemoryStream(html))
+                {
+                    bmp_captcha = new Bitmap(Image.FromStream(ms));
+                }
+
+                return bmp_captcha;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
                 return null;
             }
-
-            MemoryStream ms = new MemoryStream(html);
-            Bitmap bmp_captcha = new Bitmap(Image.FromStream(ms));
-            ms.Close();
-
-            return bmp_captcha;
         }
 
         public bool VerifyCaptcha(string captcha)
@@ -1128,14 +1288,14 @@ retry_token:
             const string VERIFY_CAPTCHA_URL = "https://passport.baidu.com/v2/?checkvcode&tpl=netdisk&subpro=netdisk_web&apiver=v3" +
                 "&token={0}" +
                 "&tt={1}" +
-                "&verifyCode={2}" +
-                "&codeString={3}" +
+                "&verifycode={2}" +
+                "&codestring={3}" +
                 "&callback={4}";
+            string url = string.Format(VERIFY_CAPTCHA_URL, m_token, GetTimeStamp(), HttpUtility.UrlEncode(captcha), m_code_string, GetCallback());
 
             try
             {
                 byte[] html = null;
-                string url = string.Format(VERIFY_CAPTCHA_URL, m_token, GetTimeStamp(), captcha, m_code_string, GetCallback());
                 bool ret = HttpGet(url, ref html);
                 if (!ret || null == html)
                 {
@@ -1143,13 +1303,17 @@ retry_token:
                 }
 
                 string str_html = Encoding.UTF8.GetString(html);
-                if ("" == str_html)
+                string str_json = str_html.EndsWith(")") ? GetStringIn(str_html, "\\(", "\\)") : str_html;
+                if ("" == str_json)
                 {
                     return false;
                 }
 
-                if (str_html.Contains("验证码错误"))
+                JavaScriptSerializer jss = new JavaScriptSerializer();
+                dynamic ret_obj = jss.DeserializeObject(str_json);
+                if ("0" != ret_obj["errInfo"]["no"])
                 {
+                    Log("校验验证码失败：" + ret_obj["errInfo"]["no"] + "，" + ret_obj["errInfo"]["msg"]);
                     return false;
                 }
 
@@ -1179,46 +1343,49 @@ retry_token:
             int page = 1;
             bool ret = false;
             BaiduFileList bdfl = null;
-
             lst_bdfi.Clear();
-            do
+
+            try
             {
-                NameValueCollection nvc = new NameValueCollection();
-                nvc.Add("channel", "chunlei");
-                nvc.Add("clienttype", "0");
-                nvc.Add("web", "1");
-                nvc.Add("t", GetTimeStamp());
-                nvc.Add("bdstoken", m_bdstoken);
-                nvc.Add("_", GetTimeStamp());
-                nvc.Add("dir", dir_path);
-                nvc.Add("page", page.ToString());
-                nvc.Add("num", NUM_PER_PAGE.ToString());
-                nvc.Add("order", "name");
-
-                byte[] html = null;
-                string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
-                ret = HttpGet(BAIDU_PAN_API + "list?" + str_params, ref html);
-                if (!ret)
+                do
                 {
-                    break;
-                }
+                    const string LIST_URL = "http://pan.baidu.com/api/list?channel=chunlei&web=1&app_id=250528&order=time&desc=1&clienttype=0&showempty=0&web=1" +
+                        "&dir={0}" +
+                        "&bdstoken={1}" +
+                        "&logid={2}" +
+                        "&num={3}" +
+                        "&page={4}";
+                    string url = string.Format(LIST_URL, HttpUtility.UrlEncode(dir_path), m_bdstoken, GetUSTimeStamp(), NUM_PER_PAGE, page);
 
-                string str_json = Encoding.UTF8.GetString(html);
-                //Log("json = " + str_json);
+                    byte[] html = null;
+                    ret = HttpGet(url, ref html);
+                    if (!ret)
+                    {
+                        break;
+                    }
 
-                bdfl = DecodeJson<BaiduFileList>(str_json);
-                if (null == bdfl ||
-                    null == bdfl.m_list ||
-                    0 != bdfl.m_errno)
-                {
-                    break;
-                }
+                    string str_json = Encoding.UTF8.GetString(html);
+                    //Log("json = " + str_json);
 
-                page++;
-                lst_bdfi.AddRange(bdfl.m_list);
-            } while (bdfl.m_list.Length >= NUM_PER_PAGE);
+                    bdfl = DecodeJson<BaiduFileList>(str_json);
+                    if (null == bdfl ||
+                        null == bdfl.m_list ||
+                        0 != bdfl.m_errno)
+                    {
+                        break;
+                    }
 
-            return true;
+                    page++;
+                    lst_bdfi.AddRange(bdfl.m_list);
+                } while (bdfl.m_list.Length >= NUM_PER_PAGE);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_last_error = ex.ToString();
+                return false;
+            }
         }
 
         private bool AnalyFileManagerReturn(BaiduFileMgrInfo bdfmi)
@@ -1249,7 +1416,7 @@ retry_token:
         private bool DoBaiduFileManagerAPI(string str_params, byte[] post_data)
         {
             byte[] html = null;
-            bool ret = HttpPost(BAIDU_PAN_API + "filemanager?" + str_params, ref html, post_data);
+            bool ret = HttpPost("http://pan.baidu.com/api/filemanager?" + str_params, ref html, post_data);
             if (!ret)
             {
                 return false;
@@ -1360,7 +1527,7 @@ retry_token:
             byte[] bytes_post = BuildKeyValueParams(nvc_post);
 
             byte[] html = null;
-            bool ret = HttpPost(BAIDU_PAN_API + "create?" + str_params, ref html, bytes_post);
+            bool ret = HttpPost("http://pan.baidu.com/api/create?" + str_params, ref html, bytes_post);
             if (!ret)
             {
                 return false;
@@ -1492,23 +1659,26 @@ retry_token:
 
                     string str_params = Encoding.UTF8.GetString(BuildKeyValueParams(nvc));
                     string url = BAIDU_PCS_REST + "?" + str_params;
-                    //Log("GET " + url);
+                    Log("开始下载区段 " + bddti.m_from + " ~ " + bddti.m_to + " ...");
 
                     HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(url);
                     req.Proxy = null;
-                    req.Timeout = 20000;
+                    req.Timeout = 60000;
                     req.UserAgent = USER_AGENT;
                     req.Method = WebRequestMethods.Http.Get;
                     req.AddRange(bddti.m_from, bddti.m_to);
                     req.CookieContainer = m_req_cc;
 
                     res = (HttpWebResponse)req.GetResponse();
-                    if (HttpStatusCode.OK == res.StatusCode)
+                    if (HttpStatusCode.OK == res.StatusCode ||
+                        HttpStatusCode.PartialContent == res.StatusCode)
                     {
+                        Application.DoEvents();
                         break;
                     }
 
                     tries++;
+                    Application.DoEvents();
                     Thread.Sleep(1000);
                 }
 
@@ -1516,14 +1686,14 @@ retry_token:
                 {
                     m_mre.WaitOne();
                     m_mre.Reset();
-                    m_last_error = "区段 " + bddti.m_from + " - " + bddti.m_to + " 下载失败！";
+                    m_last_error = "区段 " + bddti.m_from + " ~ " + bddti.m_to + " 下载失败！";
                     Log(m_last_error);
                     m_mre.Set();
                     return;
                 }
 
                 int offset = 0, read_len = 0;
-                byte[] buf = new byte[res.ContentLength];
+                byte[] buf = new byte[res.ContentLength + NET_READ_BUF_SIZE];
                 BinaryReader br = new BinaryReader(res.GetResponseStream());
                 do
                 {
@@ -1531,11 +1701,11 @@ retry_token:
                     read_len = br.Read(buf, offset, NET_READ_BUF_SIZE);
                 } while (0 != read_len);
 
+                Array.Resize(ref buf, offset + read_len);
                 br.Close(); res.Close();
 
                 m_mre.WaitOne();
                 m_mre.Reset();
-                if (null == m_mre) return;
 
                 FileStream fs = File.OpenWrite(bddti.m_local_path);
                 fs.Seek(bddti.m_from, SeekOrigin.Begin);
@@ -1583,6 +1753,10 @@ retry_token:
             m_status = 0;
             m_pi.current_files = 1;
             m_pi.total_files = d_path.Count;
+
+            if (null == m_mre) m_mre = new ManualResetEvent(true);
+            m_mre.Set();
+
             foreach (KeyValuePair<string, string> kv in d_path)
             {
                 m_pi.local_file = kv.Value;
@@ -1631,31 +1805,78 @@ retry_token:
                     m_pi.current_bytes = 0;
                     m_pi.total_bytes = res.ContentLength;
 
-                    long parts = (0 == res.ContentLength / SLICE_PER_THREAD ?
-                        res.ContentLength / SLICE_PER_THREAD :
-                        res.ContentLength / SLICE_PER_THREAD + 1);
-                    for (long i = 0; i < parts; i++)
+                    // 单线程下载
+                    int offset = 0, read_len = 0;
+
+                    long total_read = 0;
+                    long total_len = res.ContentLength;
+
+                    byte[] buf = new byte[DOWNLOAD_BUF_SIZE];
+
+                    FileStream fs = File.OpenWrite(kv.Value);
+                    BinaryReader br = new BinaryReader(res.GetResponseStream());
+                    do
                     {
-                        BaiduDownloadThreadInfo bddti = new BaiduDownloadThreadInfo();
-                        bddti.m_remote_path = kv.Key;
-                        bddti.m_local_path = kv.Value;
-                        bddti.m_from = i * SLICE_PER_THREAD;
-                        bddti.m_to = ((i + 1) * SLICE_PER_THREAD > res.ContentLength ?
-                            res.ContentLength : (i + 1) * SLICE_PER_THREAD);
+                        offset += read_len;
+                        total_read += read_len;
+                        m_pi.current_size += read_len;
+                        m_pi.current_bytes += read_len;
+                        if (offset + NET_READ_BUF_SIZE > buf.Length)
+                        {
+                            fs.Write(buf, 0, offset);
+                            offset = 0;
 
-                        ThreadPool.QueueUserWorkItem(new WaitCallback(DownloadThread), bddti);
-                    }
+                            if (1 == m_status)
+                            {
+                                while (1 == m_status)
+                                {
+                                    Application.DoEvents();
+                                    Thread.Sleep(10);
+                                }
+                            }
+                            else if (2 == m_status)
+                            {
+                                br.Close(); fs.Close(); res.Close();
+                                return false;
+                            }
 
-                    int worker_threads = 0, io_threads = 0;
-                    int max_worker_threads = 0, max_io_threads = 0;
-                    ThreadPool.GetMaxThreads(out max_worker_threads, out max_io_threads);
-                    while (worker_threads < max_worker_threads)
-                    {
-                        ThreadPool.GetAvailableThreads(out worker_threads, out io_threads);
+                            ReportProgress(m_pi);
+                        }
 
-                        Application.DoEvents();
-                        Thread.Sleep(10);
-                    }
+                        read_len = br.Read(buf, offset, NET_READ_BUF_SIZE);
+                    } while (0 != read_len);
+
+                    offset += read_len;
+                    total_read += read_len;
+                    fs.Write(buf, 0, offset);
+                    br.Close(); res.Close();
+
+                    // 多线程下载
+                    //long parts = (0 == (res.ContentLength % SLICE_PER_THREAD) ?
+                    //    res.ContentLength / SLICE_PER_THREAD :
+                    //    res.ContentLength / SLICE_PER_THREAD + 1);
+                    //for (long i = 0; i < parts; i++)
+                    //{
+                    //    BaiduDownloadThreadInfo bddti = new BaiduDownloadThreadInfo();
+                    //    bddti.m_remote_path = kv.Key;
+                    //    bddti.m_local_path = kv.Value;
+                    //    bddti.m_from = i * SLICE_PER_THREAD;
+                    //    bddti.m_to = ((i + 1) * SLICE_PER_THREAD > res.ContentLength ?
+                    //        res.ContentLength : (i + 1) * SLICE_PER_THREAD);
+
+                    //    ThreadPool.QueueUserWorkItem(new WaitCallback(DownloadThread), bddti);
+                    //}
+
+                    //int worker_threads = 0, io_threads = 0;
+                    //int max_worker_threads = 0, max_io_threads = 0;
+                    //ThreadPool.GetMaxThreads(out max_worker_threads, out max_io_threads);
+                    //while (worker_threads < max_worker_threads)
+                    //{
+                    //    ThreadPool.GetAvailableThreads(out worker_threads, out io_threads);
+
+                    //    Application.DoEvents();
+                    //    Thread.Sleep(50);
+                    //}
                 }
                 catch (Exception ex)
                 {
@@ -1663,6 +1884,7 @@ retry_token:
                 }
 
                 m_pi.current_files++;
+                ReportProgress(m_pi);
             }
 
             return true;
@@ -1755,9 +1977,9 @@ retry_token:
                     return false;
                 }
 
-                if (HttpStatusCode.OK != m_http_code)
+                if (HttpStatusCode.OK != m_last_http_code)
                 {
-                    Log(dst_file + " 快速上传失败：" + m_http_code);
+                    Log(dst_file + " 快速上传失败：" + m_last_http_code);
                     return false;
                 }
 
@@ -1897,8 +2119,8 @@ retry_token:
                         HttpWebResponse res = wq.EndGetResponse(ar) as HttpWebResponse;
                         if (null == res) return;
 
-                        m_http_code = res.StatusCode;
-                        if (HttpStatusCode.OK != m_http_code)
+                        m_last_http_code = res.StatusCode;
+                        if (HttpStatusCode.OK != m_last_http_code)
                         {
                             return;
                         }
@@ -1920,7 +2142,7 @@ retry_token:
                         offset += read_len;
                         Array.Resize(ref html, offset);
 
-                        Log("返回状态码：" + m_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
+                        Log("返回状态码：" + m_last_http_code.ToString() + "，返回内容大小：" + offset + " 字节！");
 
                         br.Close(); res.Close();
 

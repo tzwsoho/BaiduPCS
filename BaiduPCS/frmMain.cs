@@ -10,9 +10,9 @@ namespace BaiduPCS
 {
     public partial class frmMain : Form
     {
-        BaiduPCSUtil m_util = new BaiduPCSUtil();
-
         #region 公共
+
+        BaiduPCSUtil m_baidu = null;
 
         private string GetDatetime(DateTime dt)
         {
@@ -80,20 +80,25 @@ namespace BaiduPCS
 
             pbStatus.ControlAlign = ContentAlignment.MiddleRight;
 
-            m_util.OnNewLog += new BaiduPCSUtil.OnNewLogDelegate(OnNewLog);
-            m_util.OnReportProgress += new BaiduPCSUtil.OnReportProgressDelegate(OnReportProgress);
+            m_baidu = new BaiduPCSUtil();
+            m_baidu.InitLogin();
+            m_baidu.OnNewLog += new BaiduPCSUtil.OnNewLogDelegate(OnNewLog);
+            m_baidu.OnReportProgress += new BaiduPCSUtil.OnReportProgressDelegate(OnReportProgress);
         }
 
         private void frmMain_Load(object sender, EventArgs e)
         {
             cmbRemoteThreads.SelectedIndex = 0;
 
+            m_baidu.GetPublicKey();
             btnLocalRefresh_Click(null, null);
         }
 
         private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             btnLogout_Click(null, null);
+
+            Application.Exit();
         }
 
         private void lvwBrowser_ColumnClick(object sender, ColumnClickEventArgs e)
@@ -103,40 +108,56 @@ namespace BaiduPCS
 
         private void lblPause_Click(object sender, EventArgs e)
         {
-            if (0 == m_util.Status)
+            if (0 == m_baidu.Status)
             {
-                m_util.Status = 1;
+                m_baidu.Status = 1;
                 lblPause.Text = "继续";
             }
-            else if (1 == m_util.Status)
+            else if (1 == m_baidu.Status)
             {
-                m_util.Status = 0;
+                m_baidu.Status = 0;
                 lblPause.Text = "暂停";
             }
         }
 
         private void lblStop_Click(object sender, EventArgs e)
         {
-            m_util.Status = 2;
+            m_baidu.Status = 2;
         }
 
         #endregion
 
         #region 登录
 
+        private void txtPassword_Enter(object sender, EventArgs e)
+        {
+            m_baidu.GetPublicKey();
+        }
+
+        private void txtCaptcha_Validated(object sender, EventArgs e)
+        {
+            if ("" == txtCaptcha.Text) return;
+
+            bool ret = m_baidu.VerifyCaptcha(txtCaptcha.Text);
+            if (ret)
+            {
+                OnNewLog("校验码校验通过！");
+            }
+        }
+
         private void picCaptcha_Click(object sender, EventArgs e)
         {
-            Bitmap bmp_captcha = m_util.GetCaptcha();
-            if (null == bmp_captcha ||
-                "" != m_util.LastErrorStr)
+            Bitmap bmp_captcha = m_baidu.GetCaptcha();
+            if (null == bmp_captcha)
             {
-                MessageBox.Show("获取验证码失败！错误提示：\r\n\r\n" + m_util.LastErrorStr);
+                MessageBox.Show("获取验证码失败！");
             }
             else
             {
                 if (null != picCaptcha.Image)
                 {
                     picCaptcha.Image.Dispose();
+                    picCaptcha.Image = null;
                 }
 
                 picCaptcha.Image = bmp_captcha;
@@ -145,14 +166,14 @@ namespace BaiduPCS
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            int ret = m_util.Login(txtUsername.Text, txtPassword.Text, txtCaptcha.Text);
-            if (0 == ret)
+            bool ret = m_baidu.Login(txtUsername.Text, txtPassword.Text, txtCaptcha.Text);
+            if (ret)
             {
                 gbLogin.Enabled = false;
                 gbRemote.Enabled = true;
                 btnLogin.Enabled = false;
                 btnLogout.Enabled = true;
-                this.Text = "百度 PCS -- " + m_util.SysUID + " 已登录";
+                this.Text = "百度 PCS -- " + m_baidu.SysUID + " 已登录";
 
                 btnLocalRefresh_Click(null, null);
                 Application.DoEvents();
@@ -162,10 +183,8 @@ namespace BaiduPCS
 
                 MessageBox.Show("登录成功！");
             }
-            else if (100 == ret)
+            else if ("需要校验码" == m_baidu.LastErrorStr)
             {
-                MessageBox.Show("需要填写验证码！");
-
                 picCaptcha_Click(null, null);
             }
             else
@@ -176,28 +195,27 @@ namespace BaiduPCS
 
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            m_util.Status = 2;
+            m_baidu.Status = 2;
 
-            if (m_util.IsLogin())
+            if (m_baidu.Logout())
             {
-                if (m_util.Logout())
-                {
-                    //MessageBox.Show("登出成功！");
+                //MessageBox.Show("登出成功！");
 
-                    lvwRemote.Items.Clear();
+                lvwRemote.Items.Clear();
 
-                    gbLogin.Enabled = true;
-                    gbRemote.Enabled = false;
-                    btnLogin.Enabled = true;
-                    btnLogout.Enabled = false;
+                gbLogin.Enabled = true;
+                gbRemote.Enabled = false;
+                btnLogin.Enabled = true;
+                btnLogout.Enabled = false;
 
-                    this.Text = "百度 PCS";
-                }
-                else
-                {
-                    MessageBox.Show("登出错误：\r\n\r\n" + m_util.LastErrorStr);
-                }
+                this.Text = "百度 PCS";
             }
+            else
+            {
+                MessageBox.Show("登出错误：\r\n\r\n" + m_baidu.LastErrorStr);
+            }
+
+            m_baidu.Status = 0;
         }
 
         #endregion
@@ -217,6 +235,7 @@ namespace BaiduPCS
 
             lbLog.Items.Insert(0, DateTime.Now.ToString("MM-dd HH:mm:ss ") + new_log);
             lbLog.TopIndex = 0;
+            Application.DoEvents();
         }
 
         public void OnReportProgress(BaiduPCSUtil.BaiduProgressInfo pi)
@@ -601,7 +620,7 @@ namespace BaiduPCS
             if ("" == m_local_current_path) return;
             if (lvwLocal.SelectedItems.Count <= 0) return;
 
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -622,10 +641,10 @@ namespace BaiduPCS
             m_last_time = DateTime.Now;
             long ticks = DateTime.Now.Ticks;
 
-            bool ret = m_util.Upload(m_local_current_path, lst_path.ToArray(), m_remote_current_path);
+            bool ret = m_baidu.Upload(m_local_current_path, lst_path.ToArray(), m_remote_current_path);
             if (!ret)
             {
-                MessageBox.Show("上传文件失败：" + m_util.LastErrorStr);
+                MessageBox.Show("上传文件失败：" + m_baidu.LastErrorStr);
             }
 
             pbStatus.Visible = false;
@@ -736,9 +755,9 @@ namespace BaiduPCS
                 return;
             }
 
-            if (!m_util.Rename(bdfi.m_path, e.Label))
+            if (!m_baidu.Rename(bdfi.m_path, e.Label))
             {
-                MessageBox.Show("重命名发生错误：" + m_util.LastErrorStr);
+                MessageBox.Show("重命名发生错误：" + m_baidu.LastErrorStr);
             }
 
             e.CancelEdit = true;
@@ -748,13 +767,13 @@ namespace BaiduPCS
 
         private void btnRemoteRefresh_Click(object sender, EventArgs e)
         {
-            if (!m_util.IsLogin())
-            {
-                return;
-            }
+            //if (!m_baidu.IsLogin())
+            //{
+            //    return;
+            //}
 
             List<BaiduPCSUtil.BaiduFileInfo> lst_bdfi = new List<BaiduPCSUtil.BaiduFileInfo>();
-            m_util.List(ref lst_bdfi, m_remote_current_path);
+            m_baidu.List(ref lst_bdfi, m_remote_current_path);
 
             gbRemote.Enabled = false;
 
@@ -799,7 +818,7 @@ namespace BaiduPCS
 
         private void btnRemoteCut_Click(object sender, EventArgs e)
         {
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -809,7 +828,7 @@ namespace BaiduPCS
 
         private void btnRemoteCopy_Click(object sender, EventArgs e)
         {
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -819,7 +838,7 @@ namespace BaiduPCS
 
         private void btnRemotePaste_Click(object sender, EventArgs e)
         {
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -837,7 +856,7 @@ namespace BaiduPCS
                 return;
             }
 
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -871,14 +890,14 @@ namespace BaiduPCS
                 return;
             }
 
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
 
-            if (!m_util.Delete(bdfi.m_path))
+            if (!m_baidu.Delete(bdfi.m_path))
             {
-                MessageBox.Show("删除文件失败：" + m_util.LastErrorStr);
+                MessageBox.Show("删除文件失败：" + m_baidu.LastErrorStr);
             }
 
             lblStatus.Text = "所有操作已完成";
@@ -903,16 +922,16 @@ namespace BaiduPCS
                 }
             }
 
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
 
             BaiduPCSUtil.BaiduFileInfo bdfi = new BaiduPCSUtil.BaiduFileInfo();
-            bool ret = m_util.MkDir(m_remote_current_path + "/" + str_dir, ref bdfi);
+            bool ret = m_baidu.MkDir(m_remote_current_path + "/" + str_dir, ref bdfi);
             if (!ret)
             {
-                MessageBox.Show("创建文件夹失败：" + m_util.LastErrorStr);
+                MessageBox.Show("创建文件夹失败：" + m_baidu.LastErrorStr);
             }
 
             lblStatus.Text = "所有操作已完成";
@@ -924,7 +943,7 @@ namespace BaiduPCS
             if ("" == m_local_current_path) return;
             if (lvwRemote.SelectedItems.Count <= 0) return;
 
-            if (!m_util.IsLogin())
+            if (!m_baidu.IsLogin())
             {
                 return;
             }
@@ -941,7 +960,7 @@ namespace BaiduPCS
                 lst_path.Add(bdfi);
             }
 
-            int threads_max = 0;
+            int threads_max = 2;
             switch (cmbRemoteThreads.SelectedIndex)
             {
                 case 1:
@@ -966,10 +985,10 @@ namespace BaiduPCS
             m_last_time = DateTime.Now;
             long ticks = DateTime.Now.Ticks;
 
-            bool ret = m_util.Download(m_remote_current_path, lst_path, m_local_current_path, threads_max);
+            bool ret = m_baidu.Download(m_remote_current_path, lst_path, m_local_current_path, threads_max);
             if (!ret)
             {
-                MessageBox.Show("下载文件失败：" + m_util.LastErrorStr);
+                MessageBox.Show("下载文件失败：" + m_baidu.LastErrorStr);
             }
 
             pbStatus.Visible = false;

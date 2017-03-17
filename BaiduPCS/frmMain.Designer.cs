@@ -31,7 +31,6 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.gbLogin = new System.Windows.Forms.GroupBox();
-            this.picCaptcha = new System.Windows.Forms.PictureBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtCaptcha = new System.Windows.Forms.TextBox();
             this.txtPassword = new System.Windows.Forms.TextBox();
@@ -52,17 +51,9 @@
             this.colLclDatetime = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.imgIcon = new System.Windows.Forms.ImageList(this.components);
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
-            this.btnLocalRefresh = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnLocalCut = new System.Windows.Forms.ToolStripButton();
-            this.btnLocalCopy = new System.Windows.Forms.ToolStripButton();
-            this.btnLocalPaste = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnLocalRename = new System.Windows.Forms.ToolStripButton();
-            this.btnLocalDelete = new System.Windows.Forms.ToolStripButton();
-            this.btnLocalMkdir = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnUpload = new System.Windows.Forms.ToolStripButton();
             this.gbRemote = new System.Windows.Forms.GroupBox();
             this.lvwRemote = new System.Windows.Forms.ListView();
             this.colRmtName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -70,27 +61,40 @@
             this.colRmtDatetime = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colRmtMD5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.toolStrip2 = new System.Windows.Forms.ToolStrip();
-            this.btnRemoteRefresh = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnRemoteCut = new System.Windows.Forms.ToolStripButton();
-            this.btnRemoteCopy = new System.Windows.Forms.ToolStripButton();
-            this.btnRemotePaste = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
-            this.btnRemoteRename = new System.Windows.Forms.ToolStripButton();
-            this.btnRemoteDelete = new System.Windows.Forms.ToolStripButton();
-            this.btnRemoteMkdir = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.cmbRemoteThreads = new System.Windows.Forms.ToolStripComboBox();
-            this.btnDownload = new System.Windows.Forms.ToolStripButton();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.lblPause = new System.Windows.Forms.ToolStripStatusLabel();
             this.lblStop = new System.Windows.Forms.ToolStripStatusLabel();
             this.pbStatus = new System.Windows.Forms.ToolStripProgressBar();
+            this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
+            this.btnLocalRefresh = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalCut = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalCopy = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalPaste = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalRename = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalMkdir = new System.Windows.Forms.ToolStripButton();
+            this.btnLocalDelete = new System.Windows.Forms.ToolStripButton();
+            this.btnUpload = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteRefresh = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteRecycleBin = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteCut = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteCopy = new System.Windows.Forms.ToolStripButton();
+            this.btnRemotePaste = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteRename = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteMkdir = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteDelete = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteRestore = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteClear = new System.Windows.Forms.ToolStripButton();
+            this.btnDownload = new System.Windows.Forms.ToolStripButton();
+            this.btnRemoteGetLink = new System.Windows.Forms.ToolStripButton();
+            this.picCaptcha = new System.Windows.Forms.PictureBox();
             this.gbLogin.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -105,6 +109,7 @@
             this.gbRemote.SuspendLayout();
             this.toolStrip2.SuspendLayout();
             this.statusStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).BeginInit();
             this.SuspendLayout();
             // 
             // gbLogin
@@ -124,17 +129,6 @@
             this.gbLogin.TabIndex = 0;
             this.gbLogin.TabStop = false;
             this.gbLogin.Text = "登录网盘";
-            // 
-            // picCaptcha
-            // 
-            this.picCaptcha.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picCaptcha.Location = new System.Drawing.Point(640, 12);
-            this.picCaptcha.Name = "picCaptcha";
-            this.picCaptcha.Size = new System.Drawing.Size(100, 33);
-            this.picCaptcha.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.picCaptcha.TabIndex = 7;
-            this.picCaptcha.TabStop = false;
-            this.picCaptcha.Click += new System.EventHandler(this.picCaptcha_Click);
             // 
             // label3
             // 
@@ -360,8 +354,8 @@
             this.btnLocalPaste,
             this.toolStripSeparator2,
             this.btnLocalRename,
-            this.btnLocalDelete,
             this.btnLocalMkdir,
+            this.btnLocalDelete,
             this.toolStripSeparator5,
             this.btnUpload});
             this.toolStrip1.Location = new System.Drawing.Point(3, 17);
@@ -369,101 +363,20 @@
             this.toolStrip1.Size = new System.Drawing.Size(404, 25);
             this.toolStrip1.TabIndex = 0;
             // 
-            // btnLocalRefresh
-            // 
-            this.btnLocalRefresh.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalRefresh.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalRefresh.Image")));
-            this.btnLocalRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalRefresh.Name = "btnLocalRefresh";
-            this.btnLocalRefresh.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalRefresh.Text = "刷新";
-            this.btnLocalRefresh.Click += new System.EventHandler(this.btnLocalRefresh_Click);
-            // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
             this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
-            // 
-            // btnLocalCut
-            // 
-            this.btnLocalCut.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalCut.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalCut.Image")));
-            this.btnLocalCut.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalCut.Name = "btnLocalCut";
-            this.btnLocalCut.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalCut.Text = "剪切";
-            this.btnLocalCut.Click += new System.EventHandler(this.btnLocalCut_Click);
-            // 
-            // btnLocalCopy
-            // 
-            this.btnLocalCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalCopy.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalCopy.Image")));
-            this.btnLocalCopy.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalCopy.Name = "btnLocalCopy";
-            this.btnLocalCopy.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalCopy.Text = "复制";
-            this.btnLocalCopy.Click += new System.EventHandler(this.btnLocalCopy_Click);
-            // 
-            // btnLocalPaste
-            // 
-            this.btnLocalPaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalPaste.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalPaste.Image")));
-            this.btnLocalPaste.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalPaste.Name = "btnLocalPaste";
-            this.btnLocalPaste.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalPaste.Text = "粘贴";
-            this.btnLocalPaste.Click += new System.EventHandler(this.btnLocalPaste_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
             this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
-            // btnLocalRename
-            // 
-            this.btnLocalRename.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalRename.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalRename.Image")));
-            this.btnLocalRename.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalRename.Name = "btnLocalRename";
-            this.btnLocalRename.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalRename.Text = "重命名";
-            this.btnLocalRename.Click += new System.EventHandler(this.btnLocalRename_Click);
-            // 
-            // btnLocalDelete
-            // 
-            this.btnLocalDelete.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalDelete.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalDelete.Image")));
-            this.btnLocalDelete.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalDelete.Name = "btnLocalDelete";
-            this.btnLocalDelete.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalDelete.Text = "删除";
-            this.btnLocalDelete.Click += new System.EventHandler(this.btnLocalDelete_Click);
-            // 
-            // btnLocalMkdir
-            // 
-            this.btnLocalMkdir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnLocalMkdir.Image = global::BaiduPCS.Properties.Resources.MkDir;
-            this.btnLocalMkdir.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnLocalMkdir.Name = "btnLocalMkdir";
-            this.btnLocalMkdir.Size = new System.Drawing.Size(23, 22);
-            this.btnLocalMkdir.Text = "新建文件夹";
-            this.btnLocalMkdir.Click += new System.EventHandler(this.btnLocalMkdir_Click);
-            // 
             // toolStripSeparator5
             // 
             this.toolStripSeparator5.Name = "toolStripSeparator5";
             this.toolStripSeparator5.Size = new System.Drawing.Size(6, 25);
-            // 
-            // btnUpload
-            // 
-            this.btnUpload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnUpload.Image = global::BaiduPCS.Properties.Resources.Upload;
-            this.btnUpload.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnUpload.Name = "btnUpload";
-            this.btnUpload.Size = new System.Drawing.Size(23, 22);
-            this.btnUpload.Text = "上传";
-            this.btnUpload.ToolTipText = "上传文件/文件夹到网盘";
-            this.btnUpload.Click += new System.EventHandler(this.btnUpload_Click);
             // 
             // gbRemote
             // 
@@ -529,105 +442,37 @@
             this.toolStrip2.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.btnRemoteRefresh,
+            this.btnRemoteRecycleBin,
             this.toolStripSeparator3,
             this.btnRemoteCut,
             this.btnRemoteCopy,
             this.btnRemotePaste,
             this.toolStripSeparator4,
             this.btnRemoteRename,
-            this.btnRemoteDelete,
             this.btnRemoteMkdir,
+            this.btnRemoteDelete,
+            this.toolStripSeparator7,
+            this.btnRemoteRestore,
+            this.btnRemoteClear,
             this.toolStripSeparator6,
             this.toolStripLabel1,
             this.cmbRemoteThreads,
-            this.btnDownload});
+            this.btnDownload,
+            this.btnRemoteGetLink});
             this.toolStrip2.Location = new System.Drawing.Point(3, 17);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(410, 25);
             this.toolStrip2.TabIndex = 0;
-            // 
-            // btnRemoteRefresh
-            // 
-            this.btnRemoteRefresh.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteRefresh.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteRefresh.Image")));
-            this.btnRemoteRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteRefresh.Name = "btnRemoteRefresh";
-            this.btnRemoteRefresh.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteRefresh.Text = "刷新";
-            this.btnRemoteRefresh.Click += new System.EventHandler(this.btnRemoteRefresh_Click);
             // 
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
             this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
             // 
-            // btnRemoteCut
-            // 
-            this.btnRemoteCut.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteCut.Enabled = false;
-            this.btnRemoteCut.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteCut.Image")));
-            this.btnRemoteCut.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteCut.Name = "btnRemoteCut";
-            this.btnRemoteCut.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteCut.Text = "剪切";
-            this.btnRemoteCut.Click += new System.EventHandler(this.btnRemoteCut_Click);
-            // 
-            // btnRemoteCopy
-            // 
-            this.btnRemoteCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteCopy.Enabled = false;
-            this.btnRemoteCopy.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteCopy.Image")));
-            this.btnRemoteCopy.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteCopy.Name = "btnRemoteCopy";
-            this.btnRemoteCopy.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteCopy.Text = "复制";
-            this.btnRemoteCopy.Click += new System.EventHandler(this.btnRemoteCopy_Click);
-            // 
-            // btnRemotePaste
-            // 
-            this.btnRemotePaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemotePaste.Enabled = false;
-            this.btnRemotePaste.Image = ((System.Drawing.Image)(resources.GetObject("btnRemotePaste.Image")));
-            this.btnRemotePaste.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemotePaste.Name = "btnRemotePaste";
-            this.btnRemotePaste.Size = new System.Drawing.Size(23, 22);
-            this.btnRemotePaste.Text = "粘贴";
-            this.btnRemotePaste.Click += new System.EventHandler(this.btnRemotePaste_Click);
-            // 
             // toolStripSeparator4
             // 
             this.toolStripSeparator4.Name = "toolStripSeparator4";
             this.toolStripSeparator4.Size = new System.Drawing.Size(6, 25);
-            // 
-            // btnRemoteRename
-            // 
-            this.btnRemoteRename.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteRename.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteRename.Image")));
-            this.btnRemoteRename.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteRename.Name = "btnRemoteRename";
-            this.btnRemoteRename.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteRename.Text = "重命名";
-            this.btnRemoteRename.Click += new System.EventHandler(this.btnRemoteRename_Click);
-            // 
-            // btnRemoteDelete
-            // 
-            this.btnRemoteDelete.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteDelete.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteDelete.Image")));
-            this.btnRemoteDelete.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteDelete.Name = "btnRemoteDelete";
-            this.btnRemoteDelete.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteDelete.Text = "删除";
-            this.btnRemoteDelete.Click += new System.EventHandler(this.btnRemoteDelete_Click);
-            // 
-            // btnRemoteMkdir
-            // 
-            this.btnRemoteMkdir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnRemoteMkdir.Image = global::BaiduPCS.Properties.Resources.MkDir;
-            this.btnRemoteMkdir.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnRemoteMkdir.Name = "btnRemoteMkdir";
-            this.btnRemoteMkdir.Size = new System.Drawing.Size(23, 22);
-            this.btnRemoteMkdir.Text = "新建文件夹";
-            this.btnRemoteMkdir.Click += new System.EventHandler(this.btnRemoteMkdir_Click);
             // 
             // toolStripSeparator6
             // 
@@ -649,17 +494,6 @@
             "十线程"});
             this.cmbRemoteThreads.Name = "cmbRemoteThreads";
             this.cmbRemoteThreads.Size = new System.Drawing.Size(75, 25);
-            // 
-            // btnDownload
-            // 
-            this.btnDownload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.btnDownload.Image = global::BaiduPCS.Properties.Resources.Download;
-            this.btnDownload.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.btnDownload.Name = "btnDownload";
-            this.btnDownload.Size = new System.Drawing.Size(23, 22);
-            this.btnDownload.Text = "下载";
-            this.btnDownload.ToolTipText = "下载文件/文件夹到本地";
-            this.btnDownload.Click += new System.EventHandler(this.btnDownload_Click);
             // 
             // statusStrip1
             // 
@@ -716,6 +550,229 @@
             this.pbStatus.Step = 1;
             this.pbStatus.Visible = false;
             // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
+            this.toolStripSeparator7.Size = new System.Drawing.Size(6, 25);
+            // 
+            // btnLocalRefresh
+            // 
+            this.btnLocalRefresh.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalRefresh.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalRefresh.Image")));
+            this.btnLocalRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalRefresh.Name = "btnLocalRefresh";
+            this.btnLocalRefresh.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalRefresh.Text = "刷新";
+            this.btnLocalRefresh.Click += new System.EventHandler(this.btnLocalRefresh_Click);
+            // 
+            // btnLocalCut
+            // 
+            this.btnLocalCut.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalCut.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalCut.Image")));
+            this.btnLocalCut.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalCut.Name = "btnLocalCut";
+            this.btnLocalCut.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalCut.Text = "剪切";
+            this.btnLocalCut.Click += new System.EventHandler(this.btnLocalCut_Click);
+            // 
+            // btnLocalCopy
+            // 
+            this.btnLocalCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalCopy.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalCopy.Image")));
+            this.btnLocalCopy.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalCopy.Name = "btnLocalCopy";
+            this.btnLocalCopy.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalCopy.Text = "复制";
+            this.btnLocalCopy.Click += new System.EventHandler(this.btnLocalCopy_Click);
+            // 
+            // btnLocalPaste
+            // 
+            this.btnLocalPaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalPaste.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalPaste.Image")));
+            this.btnLocalPaste.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalPaste.Name = "btnLocalPaste";
+            this.btnLocalPaste.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalPaste.Text = "粘贴";
+            this.btnLocalPaste.Click += new System.EventHandler(this.btnLocalPaste_Click);
+            // 
+            // btnLocalRename
+            // 
+            this.btnLocalRename.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalRename.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalRename.Image")));
+            this.btnLocalRename.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalRename.Name = "btnLocalRename";
+            this.btnLocalRename.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalRename.Text = "重命名";
+            this.btnLocalRename.Click += new System.EventHandler(this.btnLocalRename_Click);
+            // 
+            // btnLocalMkdir
+            // 
+            this.btnLocalMkdir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalMkdir.Image = global::BaiduPCS.Properties.Resources.MkDir;
+            this.btnLocalMkdir.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalMkdir.Name = "btnLocalMkdir";
+            this.btnLocalMkdir.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalMkdir.Text = "新建文件夹";
+            this.btnLocalMkdir.Click += new System.EventHandler(this.btnLocalMkdir_Click);
+            // 
+            // btnLocalDelete
+            // 
+            this.btnLocalDelete.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnLocalDelete.Image = ((System.Drawing.Image)(resources.GetObject("btnLocalDelete.Image")));
+            this.btnLocalDelete.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnLocalDelete.Name = "btnLocalDelete";
+            this.btnLocalDelete.Size = new System.Drawing.Size(23, 22);
+            this.btnLocalDelete.Text = "删除";
+            this.btnLocalDelete.Click += new System.EventHandler(this.btnLocalDelete_Click);
+            // 
+            // btnUpload
+            // 
+            this.btnUpload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnUpload.Image = global::BaiduPCS.Properties.Resources.Upload;
+            this.btnUpload.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnUpload.Name = "btnUpload";
+            this.btnUpload.Size = new System.Drawing.Size(23, 22);
+            this.btnUpload.Text = "上传";
+            this.btnUpload.ToolTipText = "上传文件/文件夹到网盘";
+            this.btnUpload.Click += new System.EventHandler(this.btnUpload_Click);
+            // 
+            // btnRemoteRefresh
+            // 
+            this.btnRemoteRefresh.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteRefresh.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteRefresh.Image")));
+            this.btnRemoteRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteRefresh.Name = "btnRemoteRefresh";
+            this.btnRemoteRefresh.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteRefresh.Text = "全部文件";
+            this.btnRemoteRefresh.Click += new System.EventHandler(this.btnRemoteRefresh_Click);
+            // 
+            // btnRemoteRecycleBin
+            // 
+            this.btnRemoteRecycleBin.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteRecycleBin.Image = global::BaiduPCS.Properties.Resources.RecycleBin;
+            this.btnRemoteRecycleBin.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteRecycleBin.Name = "btnRemoteRecycleBin";
+            this.btnRemoteRecycleBin.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteRecycleBin.Text = "回收站";
+            this.btnRemoteRecycleBin.Click += new System.EventHandler(this.btnRemoteRecycleBin_Click);
+            // 
+            // btnRemoteCut
+            // 
+            this.btnRemoteCut.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteCut.Enabled = false;
+            this.btnRemoteCut.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteCut.Image")));
+            this.btnRemoteCut.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteCut.Name = "btnRemoteCut";
+            this.btnRemoteCut.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteCut.Text = "剪切";
+            this.btnRemoteCut.Click += new System.EventHandler(this.btnRemoteCut_Click);
+            // 
+            // btnRemoteCopy
+            // 
+            this.btnRemoteCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteCopy.Enabled = false;
+            this.btnRemoteCopy.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteCopy.Image")));
+            this.btnRemoteCopy.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteCopy.Name = "btnRemoteCopy";
+            this.btnRemoteCopy.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteCopy.Text = "复制";
+            this.btnRemoteCopy.Click += new System.EventHandler(this.btnRemoteCopy_Click);
+            // 
+            // btnRemotePaste
+            // 
+            this.btnRemotePaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemotePaste.Enabled = false;
+            this.btnRemotePaste.Image = ((System.Drawing.Image)(resources.GetObject("btnRemotePaste.Image")));
+            this.btnRemotePaste.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemotePaste.Name = "btnRemotePaste";
+            this.btnRemotePaste.Size = new System.Drawing.Size(23, 22);
+            this.btnRemotePaste.Text = "粘贴";
+            this.btnRemotePaste.Click += new System.EventHandler(this.btnRemotePaste_Click);
+            // 
+            // btnRemoteRename
+            // 
+            this.btnRemoteRename.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteRename.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteRename.Image")));
+            this.btnRemoteRename.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteRename.Name = "btnRemoteRename";
+            this.btnRemoteRename.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteRename.Text = "重命名";
+            this.btnRemoteRename.Click += new System.EventHandler(this.btnRemoteRename_Click);
+            // 
+            // btnRemoteMkdir
+            // 
+            this.btnRemoteMkdir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteMkdir.Image = global::BaiduPCS.Properties.Resources.MkDir;
+            this.btnRemoteMkdir.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteMkdir.Name = "btnRemoteMkdir";
+            this.btnRemoteMkdir.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteMkdir.Text = "新建文件夹";
+            this.btnRemoteMkdir.Click += new System.EventHandler(this.btnRemoteMkdir_Click);
+            // 
+            // btnRemoteDelete
+            // 
+            this.btnRemoteDelete.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteDelete.Image = ((System.Drawing.Image)(resources.GetObject("btnRemoteDelete.Image")));
+            this.btnRemoteDelete.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteDelete.Name = "btnRemoteDelete";
+            this.btnRemoteDelete.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteDelete.Text = "删除";
+            this.btnRemoteDelete.Click += new System.EventHandler(this.btnRemoteDelete_Click);
+            // 
+            // btnRemoteRestore
+            // 
+            this.btnRemoteRestore.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteRestore.Enabled = false;
+            this.btnRemoteRestore.Image = global::BaiduPCS.Properties.Resources.Restore;
+            this.btnRemoteRestore.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteRestore.Name = "btnRemoteRestore";
+            this.btnRemoteRestore.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteRestore.Text = "还原";
+            this.btnRemoteRestore.Click += new System.EventHandler(this.btnRemoteRestore_Click);
+            // 
+            // btnRemoteClear
+            // 
+            this.btnRemoteClear.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteClear.Enabled = false;
+            this.btnRemoteClear.Image = global::BaiduPCS.Properties.Resources.Clear;
+            this.btnRemoteClear.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteClear.Name = "btnRemoteClear";
+            this.btnRemoteClear.Size = new System.Drawing.Size(23, 22);
+            this.btnRemoteClear.Text = "清空回收站";
+            this.btnRemoteClear.Click += new System.EventHandler(this.btnRemoteClear_Click);
+            // 
+            // btnDownload
+            // 
+            this.btnDownload.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnDownload.Image = global::BaiduPCS.Properties.Resources.Download;
+            this.btnDownload.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnDownload.Name = "btnDownload";
+            this.btnDownload.Size = new System.Drawing.Size(23, 20);
+            this.btnDownload.Text = "下载";
+            this.btnDownload.ToolTipText = "下载文件/文件夹到本地";
+            this.btnDownload.Click += new System.EventHandler(this.btnDownload_Click);
+            // 
+            // btnRemoteGetLink
+            // 
+            this.btnRemoteGetLink.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRemoteGetLink.Image = global::BaiduPCS.Properties.Resources.GetLink;
+            this.btnRemoteGetLink.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRemoteGetLink.Name = "btnRemoteGetLink";
+            this.btnRemoteGetLink.Size = new System.Drawing.Size(23, 20);
+            this.btnRemoteGetLink.Text = "获取下载链接";
+            this.btnRemoteGetLink.Click += new System.EventHandler(this.btnRemoteGetLink_Click);
+            // 
+            // picCaptcha
+            // 
+            this.picCaptcha.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.picCaptcha.Location = new System.Drawing.Point(640, 12);
+            this.picCaptcha.Name = "picCaptcha";
+            this.picCaptcha.Size = new System.Drawing.Size(100, 33);
+            this.picCaptcha.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.picCaptcha.TabIndex = 7;
+            this.picCaptcha.TabStop = false;
+            this.picCaptcha.Click += new System.EventHandler(this.picCaptcha_Click);
+            // 
             // frmMain
             // 
             this.AcceptButton = this.btnLogin;
@@ -736,7 +793,6 @@
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.gbLogin.ResumeLayout(false);
             this.gbLogin.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).EndInit();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
@@ -756,6 +812,7 @@
             this.toolStrip2.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picCaptcha)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -822,6 +879,11 @@
         private System.Windows.Forms.Button btnClearLog;
         private System.Windows.Forms.ToolStripLabel toolStripLabel1;
         private System.Windows.Forms.ToolStripComboBox cmbRemoteThreads;
+        private System.Windows.Forms.ToolStripButton btnRemoteGetLink;
+        private System.Windows.Forms.ToolStripButton btnRemoteRecycleBin;
+        private System.Windows.Forms.ToolStripButton btnRemoteRestore;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
+        private System.Windows.Forms.ToolStripButton btnRemoteClear;
     }
 }
 

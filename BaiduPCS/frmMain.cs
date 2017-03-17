@@ -90,7 +90,7 @@ namespace BaiduPCS
         {
             cmbRemoteThreads.SelectedIndex = 0;
 
-            m_baidu.GetPublicKey();
+            //m_baidu.GetPublicKey();
             btnLocalRefresh_Click(null, null);
         }
 
@@ -181,21 +181,7 @@ namespace BaiduPCS
                 btnRemoteRefresh_Click(null, null);
                 Application.DoEvents();
 
-                BaiduPCSUtil.BaiduQuotaInfo bdqi = null;
-                if (m_baidu.Quota(ref bdqi))
-                {
-                    lblStatus.Text =
-                        "是否已到期：" + bdqi.m_expire +
-                        "，剩余空间：" + FormatCapability(bdqi.m_free) +
-                        "，已用空间：" + FormatCapability(bdqi.m_used) +
-                        "，总容量：" + FormatCapability(bdqi.m_total);
-                }
-                else
-                {
-                    MessageBox.Show("获取配额情况失败！");
-                    return;
-                }
-
+                GetQuotaInfo();
                 MessageBox.Show("登录成功！");
             }
             else if ("需要校验码" == m_baidu.LastErrorStr)
@@ -243,7 +229,7 @@ namespace BaiduPCS
 
         public void OnNewLog(string new_log)
         {
-            if (lbLog.Items.Count > 100)
+            if (lbLog.Items.Count > 500)
             {
                 lbLog.Items.RemoveAt(lbLog.Items.Count - 1);
             }
@@ -561,6 +547,33 @@ namespace BaiduPCS
             }
         }
 
+        private void btnLocalMkdir_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if ("" == m_local_current_path) return;
+
+                int i = 1;
+                string str_new_dir = m_local_current_path + "\\新建文件夹";
+                while (Directory.Exists(str_new_dir))
+                {
+                    str_new_dir = m_local_current_path + "\\新建文件夹(" + i++ + ")";
+                }
+
+                Directory.CreateDirectory(str_new_dir);
+                ListViewItem lvi = new ListViewItem(new string[] {
+                    Path.GetFileName(str_new_dir), "", ""
+                }, "Folder");
+
+                lvwLocal.Items.Add(lvi);
+                lvi.BeginEdit();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+
         private void btnLocalDelete_Click(object sender, EventArgs e)
         {
             if ("" == m_local_current_path) return;
@@ -596,33 +609,6 @@ namespace BaiduPCS
 
                 lblStatus.Text = "所有操作已完成";
                 btnLocalRefresh_Click(null, null);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
-        }
-
-        private void btnLocalMkdir_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if ("" == m_local_current_path) return;
-
-                int i = 1;
-                string str_new_dir = m_local_current_path + "\\新建文件夹";
-                while (Directory.Exists(str_new_dir))
-                {
-                    str_new_dir = m_local_current_path + "\\新建文件夹(" + i++ + ")";
-                }
-
-                Directory.CreateDirectory(str_new_dir);
-                ListViewItem lvi = new ListViewItem(new string[] {
-                    Path.GetFileName(str_new_dir), "", ""
-                }, "Folder");
-
-                lvwLocal.Items.Add(lvi);
-                lvi.BeginEdit();
             }
             catch (Exception ex)
             {
@@ -678,11 +664,30 @@ namespace BaiduPCS
 
         #region 远程
 
+        private bool m_is_recycle_bin = false;
         private bool m_remote_is_cut = false;
         private string m_remote_current_path = "/";
 
+        private void GetQuotaInfo()
+        {
+            BaiduPCSUtil.BaiduQuotaInfo bdqi = null;
+            if (m_baidu.Quota(ref bdqi))
+            {
+                lblStatus.Text =
+                    "是否已到期：" + bdqi.m_expire +
+                    "，剩余空间：" + FormatCapability(bdqi.m_free) +
+                    "，已用空间：" + FormatCapability(bdqi.m_used) +
+                    "，总容量：" + FormatCapability(bdqi.m_total);
+            }
+            else
+            {
+                MessageBox.Show("获取配额情况失败！");
+            }
+        }
+
         private void lvwRemote_MouseDoubleClick(object sender, MouseEventArgs e)
         {
+            if (m_is_recycle_bin) return;
             if (1 != lvwRemote.SelectedItems.Count) return;
 
             ListViewItem lvi = lvwRemote.SelectedItems[0];
@@ -828,7 +833,73 @@ namespace BaiduPCS
             lvwRemote.EndUpdate();
             gbRemote.Enabled = true;
 
-            lblStatus.Text = "共计 " + dir_num + " 个文件夹，" + file_num + " 个文件！";
+            m_is_recycle_bin = false;
+            lvwRemote.LabelEdit = true;
+            btnRemoteRefresh.Checked = true;
+            btnRemoteRecycleBin.Checked = false;
+
+            btnRemoteRename.Enabled = true;
+            btnRemoteMkdir.Enabled = true;
+            btnRemoteRestore.Enabled = false;
+            btnRemoteClear.Enabled = false;
+            btnDownload.Enabled = true;
+
+            lblStatus.Text = "所有操作已完成";
+            OnNewLog("共计 " + dir_num + " 个文件夹，" + file_num + " 个文件！");
+        }
+
+        private void btnRemoteRecycleBin_Click(object sender, EventArgs e)
+        {
+            List<BaiduPCSUtil.BaiduFileInfo> lst_bdfi = new List<BaiduPCSUtil.BaiduFileInfo>();
+            m_baidu.ListRecycleBin(ref lst_bdfi);
+
+            gbRemote.Enabled = false;
+
+            lvwRemote.BeginUpdate();
+            lvwRemote.Items.Clear();
+
+            int dir_num = 0, file_num = 0;
+            foreach (BaiduPCSUtil.BaiduFileInfo bdfi in lst_bdfi)
+            {
+                ListViewItem lvi = new ListViewItem(bdfi.m_server_filename);
+                lvi.Tag = bdfi;
+
+                if (1 == bdfi.m_is_dir)
+                {
+                    dir_num++;
+                    lvi.ImageKey = "Folder";
+                    lvi.SubItems.Add("");
+                    lvi.SubItems.Add(BaiduPCSUtil.FromUnixtime(bdfi.m_server_ctime));
+                    lvi.SubItems.Add("");
+                }
+                else
+                {
+                    file_num++;
+                    lvi.ImageKey = "File";
+                    lvi.SubItems.Add(FormatCapability(bdfi.m_size));
+                    lvi.SubItems.Add(BaiduPCSUtil.FromUnixtime(bdfi.m_server_ctime));
+                    lvi.SubItems.Add(bdfi.m_md5);
+                }
+
+                lvwRemote.Items.Add(lvi);
+            }
+
+            lvwRemote.EndUpdate();
+            gbRemote.Enabled = true;
+
+            m_is_recycle_bin = true;
+            lvwRemote.LabelEdit = false;
+            btnRemoteRefresh.Checked = false;
+            btnRemoteRecycleBin.Checked = true;
+
+            btnRemoteRename.Enabled = false;
+            btnRemoteMkdir.Enabled = false;
+            btnRemoteRestore.Enabled = true;
+            btnRemoteClear.Enabled = true;
+            btnDownload.Enabled = false;
+
+            lblStatus.Text = "所有操作已完成";
+            OnNewLog("回收站内共计 " + dir_num + " 个文件夹，" + file_num + " 个文件！");
         }
 
         private void btnRemoteCut_Click(object sender, EventArgs e)
@@ -863,6 +934,7 @@ namespace BaiduPCS
 
         private void btnRemoteRename_Click(object sender, EventArgs e)
         {
+            if (m_is_recycle_bin) return;
             if ("" == m_remote_current_path) return;
             if (lvwRemote.SelectedItems.Count <= 0) return;
             if (lvwRemote.SelectedItems.Count > 1)
@@ -879,48 +951,10 @@ namespace BaiduPCS
             lvwRemote.SelectedItems[0].BeginEdit();
         }
 
-        private void btnRemoteDelete_Click(object sender, EventArgs e)
-        {
-            if ("" == m_remote_current_path) return;
-            if (lvwRemote.SelectedItems.Count <= 0) return;
-            if (lvwRemote.SelectedItems.Count > 1)
-            {
-                MessageBox.Show("一次只能删除一个文件(夹)！");
-                return;
-            }
-
-            BaiduPCSUtil.BaiduFileInfo bdfi = lvwRemote.SelectedItems[0].Tag as BaiduPCSUtil.BaiduFileInfo;
-            if (null == bdfi)
-            {
-                return;
-            }
-
-            if (DialogResult.Yes != MessageBox.Show(
-                "是否确认删除 " + bdfi.m_path + "？",
-                "删除确认",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Stop,
-                MessageBoxDefaultButton.Button2))
-            {
-                return;
-            }
-
-            if (!m_baidu.IsLogin())
-            {
-                return;
-            }
-
-            if (!m_baidu.Delete(bdfi.m_path))
-            {
-                MessageBox.Show("删除文件失败：" + m_baidu.LastErrorStr);
-            }
-
-            lblStatus.Text = "所有操作已完成";
-            btnRemoteRefresh_Click(null, null);
-        }
-
         private void btnRemoteMkdir_Click(object sender, EventArgs e)
         {
+            if (m_is_recycle_bin) return;
+
             string str_dir = Interaction.InputBox("请输入新文件夹的名称", "新文件夹名称", "新建文件夹");
             if ("" == str_dir)
             {
@@ -951,6 +985,117 @@ namespace BaiduPCS
 
             lblStatus.Text = "所有操作已完成";
             btnRemoteRefresh_Click(null, null);
+        }
+
+        private void btnRemoteDelete_Click(object sender, EventArgs e)
+        {
+            if ("" == m_remote_current_path) return;
+            if (lvwRemote.SelectedItems.Count <= 0) return;
+            if (lvwRemote.SelectedItems.Count > 1)
+            {
+                MessageBox.Show("为防止误操作，限制一次只能删除一个文件(夹)！");
+                return;
+            }
+
+            BaiduPCSUtil.BaiduFileInfo bdfi = lvwRemote.SelectedItems[0].Tag as BaiduPCSUtil.BaiduFileInfo;
+            if (null == bdfi)
+            {
+                return;
+            }
+
+            //if (!m_baidu.IsLogin())
+            //{
+            //    return;
+            //}
+
+            if (m_is_recycle_bin)
+            {
+                if (DialogResult.Yes != MessageBox.Show(
+                    "是否确认永久删除 " + bdfi.m_path + "？",
+                    "删除确认",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Stop,
+                    MessageBoxDefaultButton.Button2))
+                {
+                    return;
+                }
+
+                if (!m_baidu.Delete(bdfi))
+                {
+                    MessageBox.Show("删除文件失败：" + m_baidu.LastErrorStr);
+                }
+
+                btnRemoteRecycleBin_Click(null, null);
+                GetQuotaInfo();
+            }
+            else
+            {
+                if (DialogResult.Yes != MessageBox.Show(
+                    "是否确认把 " + bdfi.m_path + " 移到回收站？",
+                    "删除确认",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Stop,
+                    MessageBoxDefaultButton.Button2))
+                {
+                    return;
+                }
+
+                if (!m_baidu.Delete(bdfi.m_path))
+                {
+                    MessageBox.Show("删除文件失败：" + m_baidu.LastErrorStr);
+                }
+
+                btnRemoteRefresh_Click(null, null);
+            }
+        }
+
+        private void btnRemoteRestore_Click(object sender, EventArgs e)
+        {
+            if (!m_is_recycle_bin) return;
+            if (lvwRemote.SelectedItems.Count <= 0) return;
+
+            List<BaiduPCSUtil.BaiduFileInfo> lst_bdfi = new List<BaiduPCSUtil.BaiduFileInfo>();
+            foreach (ListViewItem lvi in lvwRemote.SelectedItems)
+            {
+                BaiduPCSUtil.BaiduFileInfo bdfi = lvi.Tag as BaiduPCSUtil.BaiduFileInfo;
+                if (null == bdfi)
+                {
+                    continue;
+                }
+
+                lst_bdfi.Add(bdfi);
+            }
+
+            if (!m_baidu.Restore(lst_bdfi))
+            {
+                MessageBox.Show("还原文件(夹)失败：" + m_baidu.LastErrorStr);
+            }
+
+            lblStatus.Text = "所有操作已完成";
+            btnRemoteRecycleBin_Click(null, null);
+            GetQuotaInfo();
+        }
+
+        private void btnRemoteClear_Click(object sender, EventArgs e)
+        {
+            if (!m_is_recycle_bin) return;
+
+            if (DialogResult.Yes != MessageBox.Show(
+                "是否确认清空回收站内的所有文件和文件夹？",
+                "清空回收站确认", MessageBoxButtons.YesNo,
+                MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2))
+            {
+                return;
+            }
+
+            if (!m_baidu.Clear())
+            {
+                MessageBox.Show("清空回收站失败：" + m_baidu.LastErrorStr);
+            }
+
+            lblStatus.Text = "所有操作已完成";
+            btnRemoteRecycleBin_Click(null, null);
+            GetQuotaInfo();
         }
 
         private void btnDownload_Click(object sender, EventArgs e)
@@ -1016,6 +1161,14 @@ namespace BaiduPCS
             lblStatus.Text = "所有操作已完成，耗时 " +
                 (DateTime.Now.Ticks - ticks) / TimeSpan.TicksPerMillisecond +
                 " 毫秒！";
+        }
+
+        private void btnRemoteGetLink_Click(object sender, EventArgs e)
+        {
+            //if (1 != lvwRemote.SelectedItems.Count) return;
+
+            //ListViewItem lvi = lvwRemote.SelectedItems[0];
+            //OnNewLog(m_baidu.GetLink(lvi.Tag as BaiduPCSUtil.BaiduFileInfo));
         }
 
         #endregion

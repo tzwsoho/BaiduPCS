@@ -122,8 +122,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="netdisk_logo.ico" />
+    <Content Include="Properties\Clear.png" />
     <Content Include="Properties\Download.png" />
+    <Content Include="Properties\GetLink.png" />
     <Content Include="Properties\MkDir.png" />
+    <Content Include="Properties\RecycleBin.png" />
+    <Content Include="Properties\Restore.png" />
     <Content Include="Properties\Upload.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

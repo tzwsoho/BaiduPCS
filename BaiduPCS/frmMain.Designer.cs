@@ -125,7 +125,7 @@
             this.gbLogin.Controls.Add(this.txtUsername);
             this.gbLogin.Location = new System.Drawing.Point(12, 12);
             this.gbLogin.Name = "gbLogin";
-            this.gbLogin.Size = new System.Drawing.Size(746, 51);
+            this.gbLogin.Size = new System.Drawing.Size(972, 51);
             this.gbLogin.TabIndex = 0;
             this.gbLogin.TabStop = false;
             this.gbLogin.Text = "登录网盘";
@@ -133,7 +133,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(487, 25);
+            this.label3.Location = new System.Drawing.Point(713, 25);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(41, 12);
             this.label3.TabIndex = 4;
@@ -141,7 +141,7 @@
             // 
             // txtCaptcha
             // 
-            this.txtCaptcha.Location = new System.Drawing.Point(534, 20);
+            this.txtCaptcha.Location = new System.Drawing.Point(760, 20);
             this.txtCaptcha.Name = "txtCaptcha";
             this.txtCaptcha.Size = new System.Drawing.Size(100, 21);
             this.txtCaptcha.TabIndex = 5;
@@ -150,10 +150,10 @@
             // 
             // txtPassword
             // 
-            this.txtPassword.Location = new System.Drawing.Point(281, 20);
+            this.txtPassword.Location = new System.Drawing.Point(394, 20);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.PasswordChar = '*';
-            this.txtPassword.Size = new System.Drawing.Size(200, 21);
+            this.txtPassword.Size = new System.Drawing.Size(313, 21);
             this.txtPassword.TabIndex = 3;
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtPassword.UseSystemPasswordChar = true;
@@ -162,7 +162,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(246, 25);
+            this.label2.Location = new System.Drawing.Point(359, 25);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(29, 12);
             this.label2.TabIndex = 2;
@@ -181,7 +181,7 @@
             // 
             this.txtUsername.Location = new System.Drawing.Point(41, 20);
             this.txtUsername.Name = "txtUsername";
-            this.txtUsername.Size = new System.Drawing.Size(199, 21);
+            this.txtUsername.Size = new System.Drawing.Size(312, 21);
             this.txtUsername.TabIndex = 1;
             this.txtUsername.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -190,7 +190,7 @@
             this.btnLogout.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnLogout.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnLogout.Enabled = false;
-            this.btnLogout.Location = new System.Drawing.Point(764, 40);
+            this.btnLogout.Location = new System.Drawing.Point(990, 40);
             this.btnLogout.Name = "btnLogout";
             this.btnLogout.Size = new System.Drawing.Size(75, 23);
             this.btnLogout.TabIndex = 2;
@@ -202,7 +202,7 @@
             // 
             this.btnLogin.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnLogin.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnLogin.Location = new System.Drawing.Point(764, 11);
+            this.btnLogin.Location = new System.Drawing.Point(990, 11);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Size = new System.Drawing.Size(75, 23);
             this.btnLogin.TabIndex = 1;
@@ -227,7 +227,7 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
-            this.splitContainer1.Size = new System.Drawing.Size(830, 443);
+            this.splitContainer1.Size = new System.Drawing.Size(1056, 443);
             this.splitContainer1.SplitterDistance = 90;
             this.splitContainer1.TabIndex = 1;
             // 
@@ -238,7 +238,7 @@
             this.gbLog.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbLog.Location = new System.Drawing.Point(0, 0);
             this.gbLog.Name = "gbLog";
-            this.gbLog.Size = new System.Drawing.Size(830, 90);
+            this.gbLog.Size = new System.Drawing.Size(1056, 90);
             this.gbLog.TabIndex = 0;
             this.gbLog.TabStop = false;
             this.gbLog.Text = "通讯日志";
@@ -246,7 +246,7 @@
             // btnClearLog
             // 
             this.btnClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnClearLog.Location = new System.Drawing.Point(784, 0);
+            this.btnClearLog.Location = new System.Drawing.Point(1010, 0);
             this.btnClearLog.Name = "btnClearLog";
             this.btnClearLog.Size = new System.Drawing.Size(40, 23);
             this.btnClearLog.TabIndex = 1;
@@ -262,7 +262,7 @@
             this.lbLog.ItemHeight = 12;
             this.lbLog.Location = new System.Drawing.Point(3, 17);
             this.lbLog.Name = "lbLog";
-            this.lbLog.Size = new System.Drawing.Size(824, 70);
+            this.lbLog.Size = new System.Drawing.Size(1050, 70);
             this.lbLog.TabIndex = 0;
             this.lbLog.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lbLog_MouseDoubleClick);
             // 
@@ -279,8 +279,8 @@
             // splitContainer2.Panel2
             // 
             this.splitContainer2.Panel2.Controls.Add(this.gbRemote);
-            this.splitContainer2.Size = new System.Drawing.Size(830, 349);
-            this.splitContainer2.SplitterDistance = 410;
+            this.splitContainer2.Size = new System.Drawing.Size(1056, 349);
+            this.splitContainer2.SplitterDistance = 521;
             this.splitContainer2.TabIndex = 0;
             // 
             // gbLocal
@@ -290,7 +290,7 @@
             this.gbLocal.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbLocal.Location = new System.Drawing.Point(0, 0);
             this.gbLocal.Name = "gbLocal";
-            this.gbLocal.Size = new System.Drawing.Size(410, 349);
+            this.gbLocal.Size = new System.Drawing.Size(521, 349);
             this.gbLocal.TabIndex = 0;
             this.gbLocal.TabStop = false;
             this.gbLocal.Text = "本地";
@@ -310,7 +310,7 @@
             this.lvwLocal.Location = new System.Drawing.Point(3, 42);
             this.lvwLocal.Name = "lvwLocal";
             this.lvwLocal.ShowItemToolTips = true;
-            this.lvwLocal.Size = new System.Drawing.Size(404, 304);
+            this.lvwLocal.Size = new System.Drawing.Size(515, 304);
             this.lvwLocal.SmallImageList = this.imgIcon;
             this.lvwLocal.TabIndex = 1;
             this.lvwLocal.UseCompatibleStateImageBehavior = false;
@@ -360,7 +360,7 @@
             this.btnUpload});
             this.toolStrip1.Location = new System.Drawing.Point(3, 17);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(404, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(515, 25);
             this.toolStrip1.TabIndex = 0;
             // 
             // toolStripSeparator1
@@ -386,7 +386,7 @@
             this.gbRemote.Enabled = false;
             this.gbRemote.Location = new System.Drawing.Point(0, 0);
             this.gbRemote.Name = "gbRemote";
-            this.gbRemote.Size = new System.Drawing.Size(416, 349);
+            this.gbRemote.Size = new System.Drawing.Size(531, 349);
             this.gbRemote.TabIndex = 0;
             this.gbRemote.TabStop = false;
             this.gbRemote.Text = "网盘";
@@ -407,7 +407,7 @@
             this.lvwRemote.Location = new System.Drawing.Point(3, 42);
             this.lvwRemote.Name = "lvwRemote";
             this.lvwRemote.ShowItemToolTips = true;
-            this.lvwRemote.Size = new System.Drawing.Size(410, 304);
+            this.lvwRemote.Size = new System.Drawing.Size(525, 304);
             this.lvwRemote.SmallImageList = this.imgIcon;
             this.lvwRemote.TabIndex = 1;
             this.lvwRemote.UseCompatibleStateImageBehavior = false;
@@ -461,7 +461,7 @@
             this.btnRemoteGetLink});
             this.toolStrip2.Location = new System.Drawing.Point(3, 17);
             this.toolStrip2.Name = "toolStrip2";
-            this.toolStrip2.Size = new System.Drawing.Size(410, 25);
+            this.toolStrip2.Size = new System.Drawing.Size(525, 25);
             this.toolStrip2.TabIndex = 0;
             // 
             // toolStripSeparator3
@@ -505,7 +505,7 @@
             this.pbStatus});
             this.statusStrip1.Location = new System.Drawing.Point(0, 515);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(854, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(1080, 22);
             this.statusStrip1.TabIndex = 2;
             // 
             // lblStatus
@@ -765,7 +765,7 @@
             // picCaptcha
             // 
             this.picCaptcha.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picCaptcha.Location = new System.Drawing.Point(640, 12);
+            this.picCaptcha.Location = new System.Drawing.Point(866, 12);
             this.picCaptcha.Name = "picCaptcha";
             this.picCaptcha.Size = new System.Drawing.Size(100, 33);
             this.picCaptcha.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -779,7 +779,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnLogout;
-            this.ClientSize = new System.Drawing.Size(854, 537);
+            this.ClientSize = new System.Drawing.Size(1080, 537);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.btnLogout);
